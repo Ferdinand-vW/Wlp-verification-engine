@@ -40,5 +40,5 @@ type Parameters = [Variable]
 type Expressions = [Expression]
 type Variables = [Variable]
 type ArrayType = [PrimitiveType]
---Some code to make it nicer to read.
+--Types to make it nicer to read.
 type Name = String
