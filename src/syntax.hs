@@ -1,32 +1,32 @@
 data Program = ProgramName String deriving Show
 
-data Statement = Skip 
-            | Assert Expression
-            | Assume Expression
-            | AsgTargets Expressions
-            | Seq Statement Statement
-            | If Statement Statement
-            | Inv Expression Expression Statement
-            | Var Variables Statement
+data Stmt = Skip 
+            | Assert Expr
+            | Assume Expr
+            | AsgTargets Exprs
+            | Seq Stmt Stmt
+            | If Stmt Stmt
+            | Inv Expr Expr Stmt
+            | Var Variables Stmt
             deriving Show
 
 
 data Variable = Variable Name Type deriving Show
 data BoundVariable = BoundVariable Name Type deriving Show
 
-data Expression = Literal
+data Expr = Literal
             | N Name
-            | Expression `BinaryOp` Expression
-            | Not Expression
-            | Name Expression
-            | Forall BoundVariable Expression
+            | Expr `BinaryOp` Expr
+            | Not Expr
+            | Name Expr
+            | Forall BoundVariable Expr
             deriving Show
 
 data BinaryOp = Plus 
         | Min 
         | Conjunction 
         | Disjunction 
-        | Implication 
+        | Implication
         | Lt
         | Lte
         | Eq
@@ -35,10 +35,10 @@ data BinaryOp = Plus
 data Type = T PrimitiveType | A ArrayType deriving Show
 data PrimitiveType = B Bool | I Int deriving Show
 
+--Types to make it nicer to read.
 type AsgTargets = [Name]
 type Parameters = [Variable]
-type Expressions = [Expression]
+type Exprs = [Expr]
 type Variables = [Variable]
 type ArrayType = [PrimitiveType]
---Types to make it nicer to read.
 type Name = String
