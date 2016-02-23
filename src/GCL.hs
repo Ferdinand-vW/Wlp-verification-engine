@@ -1,5 +1,7 @@
 module GCL where
 
+import Data.SBV(SInteger)
+
 data Stmt =
   Program [String] [Stmt] |
   Pre Expr                |
@@ -12,7 +14,7 @@ data Stmt =
   deriving (Eq,Show)
 
 data Expr =
-  Lit Int            |
+  Lit SInteger       |
   Name String        |
   ForAll String Expr |
   Minus Expr Expr    |
@@ -54,7 +56,7 @@ if_then_else cond br1 br2 = If cond br1 br2
 while :: Expr -> [Stmt] -> Stmt
 while cond body = While cond body
 
-i :: Int -> Expr
+i :: SInteger -> Expr
 i n = Lit n
 
 minus :: Expr -> Expr -> Expr
@@ -63,8 +65,8 @@ minus expr1 expr2 = Minus expr1 expr2
 plus :: Expr -> Expr -> Expr
 plus expr1 expr2 = Plus expr1 expr2
 
-equal :: Expr -> Expr -> Expr
-equal expr1 expr2 = Equal expr1 expr2
+(.==) :: Expr -> Expr -> Expr
+(.==) expr1 expr2 = Equal expr1 expr2
 
 (.&&) :: Expr -> Expr -> Expr
 (.&&) expr1 expr2 = And expr1 expr2
