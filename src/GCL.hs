@@ -2,6 +2,8 @@ module GCL where
 
 import Data.SBV(SInteger)
 
+--data Program = Program [String] [Stmt]
+
 data Stmt =
   Program [String] [Stmt] |
   Pre Expr                |
