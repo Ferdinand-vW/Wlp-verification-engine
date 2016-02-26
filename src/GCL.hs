@@ -65,6 +65,17 @@ minus expr1 expr2 = Minus expr1 expr2
 plus :: Expr -> Expr -> Expr
 plus expr1 expr2 = Plus expr1 expr2
 
+infixr 6 `minus`
+infixr 6 `plus`
+infixr 4 .==
+infixr 4 .< 
+infixr 4 .<=
+infixr 4 .!
+infixr 3 .&& 
+infixr 2 .|| 
+infixr 1 .= 
+infixr 0 .==>
+
 (.==) :: Expr -> Expr -> Expr
 (.==) expr1 expr2 = Equal expr1 expr2
 

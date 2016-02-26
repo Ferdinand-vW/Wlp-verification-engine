@@ -10,8 +10,8 @@ main = do
   testProve
   testProveImpl
 
-testProve = provePred (forall "x" (ref "x" .< i 5)) >>= print
-testProveImpl = proveImpl (forall "x" (ref "x" .== i 5)) (forall "x" ((ref "x" .< i 5) .|| (i 5 .< ref "x"))) >>= print
+testProve = proveImpl (ref "y" .== ref "m") (ref "y" .== ref "m" `plus` i 5) >>= print
+testProveImpl = proveImpl (forall "x" (ref "x" .== i 5)) (forall "x" (ref "x" .< i 5 .|| i 5 .< ref "x")) >>= print
 
 exampleCode = var ["x","y"]
   [ assume (i 0 .< ref "x"),
