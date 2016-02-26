@@ -12,7 +12,7 @@ s1 = var ["x" , "y"]
 
 wlp :: Stmt -> Expr -> Expr
 wlp Skip q = q
-wlp (e1 `Assign` e2) q = assignQ q (name e1,name e2)
+wlp (Assign e1 e2) q = assignQ q (name e1,name e2)
 wlp (Post e)      q    = e .&& q
 wlp (Pre e)       q    = e .==> q
 wlp (If g s1 s2) q    = (g .&& wlp s1 q) .&& ((.!) g .&& wlp s2 q)
