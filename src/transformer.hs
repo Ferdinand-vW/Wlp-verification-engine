@@ -13,12 +13,12 @@ s1 = var ["x" , "y"]
 wlp :: Stmt -> Expr -> Expr
 wlp Skip q = q
 wlp (Assign e1 e2) q = assignQ q (name e1,name e2)
-wlp (Post e)      q    = e .&& q
-wlp (Pre e)       q    = e .==> q
-wlp (If g s1 s2) q    = (g .&& wlp s1 q) .&& ((.!) g .&& wlp s2 q)
+wlp (Post e)       q    = e .&& q
+wlp (Pre e)        q    = e .==> q
+wlp (If g s1 s2)   q    = (g .&& wlp s1 q) .&& ((.!) g .&& wlp s2 q)
 wlp (Inv i (While g s)) q  = (i .&& (.!) g) .==> q .|| (i .&& g) .==> i
-wlp (While e1 b)  q    = error "We do not allow a While without an invariant.."
-wlp (Program n s) q    = undefined --What do I need to this at this case?
+wlp (While e1 b)   q    = error "We do not allow a While without an invariant.."
+wlp (Program n s)  q    = undefined --What do I need to this at this case?
 wlp _ _ = error "Not supported by our wlp function"
 
 
