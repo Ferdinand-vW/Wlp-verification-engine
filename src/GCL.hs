@@ -5,7 +5,7 @@ import Data.SBV(SInteger)
 --data Program = Program [String] [Stmt]
 
 data Stmt =
-  Program [String] [Stmt] |
+  Var [String] [Stmt] |
   Pre Expr                |
   Post Expr               |
   Inv Expr Stmt           |
@@ -27,12 +27,13 @@ data Expr =
   And Expr Expr      |
   Or Expr Expr       |
   Not Expr           |
-  Impl Expr Expr
+  Impl Expr Expr     |
+  True_
   deriving (Eq,Show)
 
 
 var :: [String] -> [Stmt] -> Stmt
-var vars body = Program vars body
+var vars body = Var vars body
 
 assume :: Expr -> Stmt
 assume pre = Pre pre

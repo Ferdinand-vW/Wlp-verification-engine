@@ -64,6 +64,8 @@ mkPred vars (ForAll s e)   = do
   s1 <- forall s :: Symbolic (SInteger)
   p <- mkPred (M.insert s s1 vars) e
   return $ p
+mkPred vars True_ = do
+  return true
 mkPred vars _ = error "Should not occur"
 
 
@@ -96,6 +98,7 @@ mkInt vars op e1 e2 = do
   return $ s1 `op` s2
 
 collectVars :: Expr -> S.Set String
+collectVars True_ = S.empty
 collectVars (Lit i) = S.empty
 collectVars (Name s) = S.singleton s
 collectVars (Minus e1 e2) = S.union (collectVars e1) (collectVars e2)
