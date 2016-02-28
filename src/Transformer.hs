@@ -4,6 +4,7 @@ import qualified Data.List as L
 
 import GCL
 import Prover
+import Control.Monad
 
 s1 :: Stmt
 s1 = var ["x" , "y"] 
@@ -14,24 +15,76 @@ s1 = var ["x" , "y"]
                 assert (ref "y" .== i 0)
             ]
 
+s2 :: Stmt
+s2 = var ["x" , "y"] 
+            [ assume (i 2 .<=  ref "x") ,
+                inv (i 0 .<= ref "x" )
+                    (while (i 0 .< ref "x")  [(ref "x") .= (ref "x" `minus` i 2) ]),
+                ref "y"  .= ref "x",
+                assert (ref "y" .== i 0)
+            ]
+
+
+
 verifyProgram :: Stmt -> IO ()
 verifyProgram (Var xs s) = do
   let (Var _ s') = snd $ updateVars xs 0 (Var [] s)
-      w = foldr (\x y -> wlp x y) True_ (tail s')
       Pre pre = head s
+  w <- foldrM (\x y -> wlp x y) True_ (tail s')
   proveImpl pre w >>= print
 
-wlp :: Stmt -> Expr -> Expr
-wlp (Var vars s) q = foldr (\x y -> wlp x y) True_ s
-wlp Skip q = q
-wlp (Assign e1 e2) q = assignQ q (name e1,name e2)
-wlp (Post e)      q    = e .&& q
-wlp (Pre e)       q    = e .==> q
-wlp (If g s1 s2) q    = (g .&& wlp s1 q) .&& ((.!) g .&& wlp s2 q)
-wlp (Inv i (While g s)) q  = ((i .&& (.!) g) .==> q) .&& ((i .&& g) .==> i)
-wlp (While e1 b)  q    = error "We do not allow a While without an invariant.."
+
+--Wlp without IO
+--wlp :: Stmt -> Expr -> Expr
+--wlp (Var vars s) q = foldr (\x y -> wlp x y) True_ s
+--wlp Skip q = q
+--wlp (Assign e1 e2) q = assignQ q (name e1,name e2)
+--wlp (Post e)      q    = e .&& q
+--wlp (Pre e)       q    = e .==> q
+--wlp (If g s1 s2) q    = (g .&& wlp s1 q) .&& ((.!) g .&& wlp s2 q)
+--wlp (Inv i (While g s)) q  = ((i .&& (.!) g) .==> q) .&& ((i .&& g) .==> i)
+--wlp (While e1 b)  q    = error "We do not allow a While without an invariant.."
+--wlp _ _ = error "Not supported by our wlp function"
+
+
+wlp :: Stmt -> Expr -> IO Expr
+wlp Skip q = do
+    return q
+wlp (Var vars s) q = do
+    putStrLn "var"
+    p <- foldrM (\x y -> wlp x y) True_ s
+    return p
+wlp (Assign e1 e2) q = do
+    let assign = assignQ q (name e1, name e2)
+    putStrLn $ name e1 ++ " q:" ++ show q --Why can't I print e2?
+    return $ assign
+wlp (Post e) q = do
+    putStrLn $ "post: " ++ show (e .&& q)
+    return $ e .&& q
+wlp (Pre e) q = do
+    putStrLn $ "pre : " ++ show (e .==> q)
+    return $ e .==> q
+wlp (If g s1 s2) q = do
+    putStrLn "if"
+    p <- wlp s1 q
+    return p 
+wlp (Inv i (While g s)) q  = do
+    --putStrLn $ "inv: " ++ show i 
+    --putStrLn $ "cond: " ++ show g
+    --putStrLn $ "while true: " ++ show (((i .&& g) .==> p))
+    --putStrLn $ "while not true " ++ show (i .&& (.!) g)
+    --putStrLn $ "q: " ++ show q
+    --return $ ((i .&& (.!) g) .==> q) .&& ((i .&& g) .==> i)
+    return i
+wlp (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp _ _ = error "Not supported by our wlp function"
 
+
+--helper for the right fold
+foldrM :: Monad m => (a -> b -> m b) -> b -> [a] -> m b
+foldrM f d []     = return d
+foldrM f d (x:xs) = (\z -> f x z) <<= foldrM f d xs
+    where (<<=) = flip (>>=)
 
 --The assignQ is for now only allowing variable names.
 assignQ :: Expr -> (String,String) -> Expr

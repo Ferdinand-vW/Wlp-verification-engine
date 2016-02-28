@@ -29,8 +29,22 @@ data Expr =
   Not Expr           |
   Impl Expr Expr     |
   True_
-  deriving (Eq,Show)
+  deriving (Eq)
 
+instance Show Expr where
+  show (Lit s)        = show s
+  show (Name s)       = s
+  show (ForAll s e)   = "Forall " ++ s ++ " : " ++ show e
+  show (Minus e1 e2)  = show e1 ++ " - " ++ show e2
+  show (Plus e1 e2)   = show e1 ++ " + " ++ show e2
+  show (Equal e1 e2)  = show e1 ++ " == " ++ show e2
+  show (Lower e1 e2)  = show e1 ++ " < " ++ show e2
+  show (LowerE e1 e2) = show e1 ++ " <= " ++ show e2
+  show (And e1 e2)    = show e1 ++ " && " ++ show e2 
+  show (Or e1 e2)     = show e1 ++ " || " ++ show e2 
+  show (Not e1)       = "Not (" ++ show e1 ++ ")"
+  show (Impl e1 e2)   = show e1 ++ " ==> "  ++ show e2
+  show True_          = "True"
 
 var :: [String] -> [Stmt] -> Stmt
 var vars body = Var vars body
