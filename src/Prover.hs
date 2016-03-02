@@ -1,4 +1,6 @@
-module Prover where
+module Prover 
+(proveImpl,provePred)
+where
 
 import qualified Data.Set as S
 import qualified Data.Map as M
