@@ -98,6 +98,23 @@ wlp (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp _ _ = error "Not supported by our wlp function"
 
 --The assignQ is for now only allowing variable names.
+<<<<<<< HEAD
+assignQ :: Expr -> (String,String) -> Expr
+assignQ (Lit e)        n = i e
+assignQ (Name n)       (a,t) | n == t = Name a --a is the assigned value.
+                             | otherwise = Name n
+assignQ (ForAll s e)   n  = ForAll s $ assignQ e n
+assignQ (Minus e1 e2)  n  = Minus  (assignQ e1 n) (assignQ e2 n)
+assignQ (Plus e1 e2)   n  = Plus   (assignQ e1 n) (assignQ e2 n)
+assignQ (Equal e1 e2)  n  = Equal  (assignQ e1 n) (assignQ e2 n)
+assignQ (Lower e1 e2)  n  = Lower  (assignQ e1 n) (assignQ e2 n)
+assignQ (LowerE e1 e2) n  = LowerE (assignQ e1 n) (assignQ e2 n)
+assignQ (And e1 e2)    n  = And    (assignQ e1 n) (assignQ e2 n)
+assignQ (Or e1 e2)     n  = Or     (assignQ e1 n) (assignQ e2 n)
+assignQ (Not e1)       n  = Not    e1
+assignQ True_          n  = True_
+assignQ (Repby var index value) n = Repby (assignQ var n) index (assignQ value n)
+=======
 assignQ :: Expr -> String -> Expr -> Expr
 assignQ (Lit i)        ref expr = Lit i
 assignQ (Name s)       ref expr | s == ref = expr --a is the assigned value.
@@ -112,7 +129,7 @@ assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref e
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Not e1)       ref expr = Not    e1
 assignQ True_          ref expr = True_
---assignQ (Repby var index value) n = Repby (assignQ var n) index (assignQ value n)
+>>>>>>> 8a1cad3cc8333555a9ed5542bce0f444d3a9ecad
 
 name :: Expr -> String
 name (Name s) = s

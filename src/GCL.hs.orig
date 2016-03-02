@@ -16,6 +16,7 @@ data Stmt =
   deriving (Eq,Show)
 
 data Expr =
+<<<<<<< HEAD
   Lit SInteger        |
   Name String         |
   ForAll String Expr  |
@@ -30,13 +31,31 @@ data Expr =
   Impl Expr Expr      |
   True_               |
   Repby Expr Expr Expr
-  deriving (Show,Eq)
+  deriving (Eq)
 
 data AsgTarget = AsgTarget String [Expr]
+
+
+
+instance Show Expr where
+=======
+  Lit SInteger       |
+  Name String        |
+  ForAll String Expr |
+  Minus Expr Expr    |
+  Plus Expr Expr     |
+  Equal Expr Expr    |
+  Lower Expr Expr    |
+  LowerE Expr Expr   |
+  And Expr Expr      |
+  Or Expr Expr       |
+  Not Expr           |
+  Impl Expr Expr     |
+  True_
+  deriving (Show,Eq)
+
 {-instance Show Expr where
-
-
-
+>>>>>>> 8a1cad3cc8333555a9ed5542bce0f444d3a9ecad
   show (Lit s)        = show s
   show (Name s)       = s
   show (ForAll s e)   = "Forall " ++ s ++ " : " ++ show e
