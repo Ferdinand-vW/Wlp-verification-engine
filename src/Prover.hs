@@ -111,4 +111,4 @@ collectVars (Or e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (Not e) = collectVars e
 collectVars (Impl e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (ForAll s e) = S.difference (collectVars e) (S.singleton s)
-collectVars expr = error $ "Could not identify: " ++ show expr--missing case forAll
+collectVars expr = error $ "Could not identify: " ++ show expr
