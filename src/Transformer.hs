@@ -29,6 +29,8 @@ s2 = var ["x" , "y"]
 
 
 
+
+
 verifyProgram :: Stmt -> IO ()
 verifyProgram (Var xs s) = do
   let allVars = S.toList $ collectVars (Var xs s)
@@ -101,6 +103,7 @@ assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref e
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Not e1)       ref expr = Not    e1
 assignQ True_          ref expr = True_
+--assignQ (Repby var index value) n = Repby (assignQ var n) index (assignQ value n)
 
 name :: Expr -> String
 name (Name s) = s

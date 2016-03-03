@@ -16,22 +16,27 @@ data Stmt =
   deriving (Eq,Show)
 
 data Expr =
-  Lit SInteger       |
-  Name String        |
-  ForAll String Expr |
-  Minus Expr Expr    |
-  Plus Expr Expr     |
-  Equal Expr Expr    |
-  Lower Expr Expr    |
-  LowerE Expr Expr   |
-  And Expr Expr      |
-  Or Expr Expr       |
-  Not Expr           |
-  Impl Expr Expr     |
-  True_
+  Lit SInteger        |
+  Name String         |
+  ForAll String Expr  |
+  Minus Expr Expr     |
+  Plus Expr Expr      |
+  Equal Expr Expr     |
+  Lower Expr Expr     |
+  LowerE Expr Expr    |
+  And Expr Expr       |
+  Or Expr Expr        |
+  Not Expr            |
+  Impl Expr Expr      |
+  True_               |
+  Repby Expr Expr Expr
   deriving (Show,Eq)
 
+data AsgTarget = AsgTarget String [Expr]
 {-instance Show Expr where
+
+
+
   show (Lit s)        = show s
   show (Name s)       = s
   show (ForAll s e)   = "Forall " ++ s ++ " : " ++ show e
@@ -48,6 +53,9 @@ data Expr =
 
 var :: [String] -> [Stmt] -> Stmt
 var vars body = Var vars body
+
+repby :: Expr -> Expr -> Expr -> Expr
+repby var index value = Repby var index value
 
 assume :: Expr -> Stmt
 assume pre = Pre pre
