@@ -6,6 +6,7 @@ import qualified Data.Map as M
 import qualified Data.Maybe as ME
 import qualified Data.SBV as SBV
 
+import Data.SBV(modelExists)
 import GCL
 import Prover
 import Control.Monad
@@ -13,7 +14,7 @@ import Control.Monad
 s1 :: Stmt
 s1 = var ["x" , "y"] 
             [ assume (i 0 .<  ref "x") ,
-                inv (i 0 .<= ref "x" )
+                inv (i 0 .<= ref "x")
                     (while (i 0 .< ref "x")  [(ref "x") .= (ref "x" `minus` i 1) ]),
                 ref "y"  .= ref "x",
                 assert (ref "y" .== i 0)
@@ -22,12 +23,9 @@ s1 = var ["x" , "y"]
 s2 :: Stmt
 s2 = var ["x" , "y"] 
             [ assume (i 2 .<=  ref "x") ,
-                inv (i 3 .<= ref "x" )
+                inv (i 0 .<= ref "x")
                     (while (i 0 .< ref "x")  [(ref "x") .= (ref "x" `minus` i 2) ]),
-                var ["x","y","z"]
-                  [ref "y" .= ref "x" `minus` i 5 `minus` ref "z"],
-                ref "y"  .= ref "x" `minus` i 2,
-                ref "z" .= ref "z",
+                ref "y"  .= ref "x",
                 assert (ref "y" .== i 0)
             ]
 
@@ -37,69 +35,61 @@ s2 = var ["x" , "y"]
 
 verifyProgram :: Stmt -> IO ()
 verifyProgram (Var xs s) = do
-  putStrLn $ show s
   let allVars = S.toList $ collectVars (Var xs s)
-      (Var _ s') = snd $ updateVars allVars M.empty 0 (Var xs s)
+      (Var xs' s') = snd $ updateVars allVars M.empty 0 (Var xs s)
       Pre pre = head s'
   putStrLn $ show allVars
-  putStrLn $ show s'
-  putStrLn "Do WLp"
-  w <- foldWlp True_ (tail s')
-  putStrLn "Done with Wlp"
+  putStrLn $ show (Var xs' s')
+  (invs,w) <- foldWlp True_ (tail s')
+
+  when (not $ null invs) $ do
+    putStrLn "------------------------------"
+    putStrLn "Invariants are not valid:"
+    mapM_ (putStrLn . show) xs
+
+  putStrLn "-----------------------------------"
   putStrLn $ show pre
   putStrLn $ show w
   proveImpl pre w >>= print
+      
 
-foldWlp :: Expr -> [Stmt] -> IO Expr
+foldWlp :: Expr -> [Stmt] -> IO ([Expr],Expr)
 foldWlp e s = foldr (\x y -> do
-                        y' <- y
-                        wlp x y') (return e) s
+                      (xs,expr) <- y
+                      (ys,expr') <- wlp x expr 
+                      return $ (xs ++ ys, expr')) (return $ ([],e)) s
 
---Wlp without IO
---wlp :: Stmt -> Expr -> Expr
---wlp (Var vars s) q = foldr (\x y -> wlp x y) True_ s
---wlp Skip q = q
---wlp (Assign e1 e2) q = assignQ q (name e1,name e2)
---wlp (Post e)      q    = e .&& q
---wlp (Pre e)       q    = e .==> q
---wlp (If g s1 s2) q    = (g .&& wlp s1 q) .&& ((.!) g .&& wlp s2 q)
---wlp (Inv i (While g s)) q  = ((i .&& (.!) g) .==> q) .&& ((i .&& g) .==> i)
---wlp (While e1 b)  q    = error "We do not allow a While without an invariant.."
---wlp _ _ = error "Not supported by our wlp function"
-
-
-wlp :: Stmt -> Expr -> IO Expr
+wlp :: Stmt -> Expr -> IO ([Expr],Expr)
 wlp Skip q = do
-    return q
+    return ([],q)
 wlp (Var vars s) q = do
-    putStrLn "var"
-    p <- foldWlp True_ s
+    p <- foldWlp q s
     return p
 wlp (Assign (Name s) e2) q = do
     let assign = assignQ q (s, Nothing) e2
-    putStrLn $ s ++ " q:" ++ show q --Why can't I print e2?
-    return $ assign
+    return $ ([],assign)
 wlp (Assign (Repby (Name s) (Lit i)) e2) q = do
     let assign = assignQ q (s,Just i) e2
-    putStrLn $ s ++ " q:" ++ show q --Why can't I print e2?
-    return $ assign
+    return $ ([],assign)
 wlp (Post e) q = do
-    putStrLn $ "post: " ++ show (e .&& q)
-    return $ e .&& q
+    return $ ([],e .&& q)
 wlp (Pre e) q = do
-    putStrLn $ "pre : " ++ show (e .==> q)
-    return $ e .==> q
+    return $ ([],e .==> q)
 wlp (If g s1 s2) q = do
-    putStrLn "if"
-    p <- wlp s1 q
-    return p 
+    (xs,e1) <- wlp s1 q
+    (ys,e2) <- wlp s2 q
+    return $ (xs ++ ys, (g .&& e1) .|| ((.!)g .&& e2))
 wlp (Inv i (While g s)) q  = do
-    putStrLn $ "inv: " ++ show i 
-    putStrLn $ "cond: " ++ show g
-    putStrLn $ "while not true " ++ show (i .&& (.!) g)
-    putStrLn $ "q: " ++ show q
-    --return $ ((i .&& (.!) g) .==> q) .&& ((i .&& g) .==> i)
-    return i
+    impl1Val <- implIsValid (i .&& (.!)g) q
+    (xs,wlpOfS) <- foldWlp i s
+    impl2Val <- implIsValid (i .&& g) wlpOfS
+    let implInv1 = if impl1Val then [] else [i .&& (.!) g .==> q]
+        implInv2 = if impl2Val then xs else [i .&& g .==> wlpOfS]
+        invs = implInv1 ++ implInv2
+
+    if null invs
+      then return (invs,i)
+      else return (invs,(.!)g .&& q)
 wlp (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp _ _ = error "Not supported by our wlp function"
 
@@ -153,16 +143,10 @@ updateVars vars newvars n (Var vars' stmts) =
   let dupVars = L.intersect vars vars'
       freshVars = map (++ show n) dupVars
       freshVarsMap = M.fromList $ zip dupVars freshVars
-      remVars = vars L.\\ dupVars
+      remVars = vars' L.\\ dupVars
       (n',stmts') = foldr (\x (i,y) -> let (i',x') = updateVars vars (M.union freshVarsMap newvars) i x
                                        in (i',x':y)) (n+1,[]) stmts
- in if null vars'
-      then (n',Var (L.union remVars freshVars) stmts')
-      else (n',Var (L.union remVars freshVars) stmts'){-error $ show stmts ++ " " ++
-                   show dupVars ++ "  " ++ show freshVars 
-                   ++ "  " ++ show remVars ++ " " ++ 
-                   show vars ++ " " ++ show vars'-}
- --
+  in (n',Var (L.union remVars freshVars) stmts')
 
 updateVarInExpr :: [String] -> M.Map String String -> Int -> Expr -> (Int,Expr)
 updateVarInExpr vars newvars n (Lit i) = (n,Lit i)
@@ -206,10 +190,12 @@ updateVarInExpr vars newvars n (Not e) =
   in (n', Not e')
 updateVarInExpr vars newvars n (ForAll s e)   =
   case L.find (==s) vars of
-    Nothing -> let (n', e') = updateVarInExpr vars newvars n e
+    Nothing -> let varEntry = M.insert s s newvars
+                   (n', e') = updateVarInExpr (s : vars) varEntry n e
                in (n',ForAll s e')
     Just s' -> let newVar = s' ++ show n
-                   (n', e') = updateVarInExpr (newVar : vars) newvars n' e'
+                   updateVars = M.adjust (\_ -> newVar) s' newvars
+                   (n', e') = updateVarInExpr vars updateVars (n + 1) e
                in (n',ForAll newVar e')
 
 collectVars :: Stmt -> S.Set String
@@ -217,6 +203,17 @@ collectVars (Var xs stmts) = S.union (S.fromList xs) (foldr (S.union . collectVa
 collectVars (Inv _ stmt) = collectVars stmt
 collectVars (While _ stmts) = foldr (S.union . collectVars) S.empty stmts
 collectVars (If _ stmt1 stmt2) = S.union (collectVars stmt1) (collectVars stmt2)
-collectVars _ = S.empty 
+collectVars _ = S.empty
 
 list = [(1,"das"),(2,"dasd")]
+implIsValid :: Expr -> Expr -> IO Bool
+implIsValid e1 e2 = do
+  validity <- proveImpl e1 e2
+  putStrLn $ show validity
+  return $ not $ modelExists validity
+
+mergeEither :: (a -> a -> a) -> Either [a] a -> Either [a] a -> Either [a] a
+mergeEither _ (Left xs) (Left ys) = Left (xs ++ ys)
+mergeEither _ (Left xs) _ = Left xs
+mergeEither _ _ (Left ys) = Left ys
+mergeEither op (Right e1) (Right e2) = Right (e1 `op` e2)
