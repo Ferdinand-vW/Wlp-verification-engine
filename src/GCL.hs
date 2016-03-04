@@ -29,7 +29,7 @@ data Expr =
   Not Expr            |
   Impl Expr Expr      |
   True_               |
-  Repby Expr Expr Expr
+  Repby Expr Expr
   deriving (Show,Eq)
 
 data AsgTarget = AsgTarget String [Expr]
@@ -54,8 +54,8 @@ data AsgTarget = AsgTarget String [Expr]
 var :: [String] -> [Stmt] -> Stmt
 var vars body = Var vars body
 
-repby :: Expr -> Expr -> Expr -> Expr
-repby var index value = Repby var index value
+repby :: Expr  -> Expr -> Expr
+repby var index = Repby var index
 
 assume :: Expr -> Stmt
 assume pre = Pre pre
