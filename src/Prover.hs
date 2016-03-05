@@ -8,7 +8,7 @@ import Data.Maybe
 import Data.SBV
 import Control.Monad
 
-import GCL (Expr(..),Stmt(..))
+import SyntaxTransformer
 
 proveImpl e1 e2 = do
   let e1Vars = collectVars e1
@@ -69,7 +69,6 @@ mkPred vars (ForAll s e)   = do
 mkPred vars True_ = do
   return true
 mkPred vars _ = error "Should not occur"
-
 
 
 mkSymInt :: M.Map String SInteger -> Expr -> Symbolic SInteger

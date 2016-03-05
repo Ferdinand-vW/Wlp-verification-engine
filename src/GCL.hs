@@ -1,36 +1,36 @@
 module GCL where
 
+import SyntaxTransformer
+
 import Data.SBV(SInteger)
 
---data Program = Program [String] [Stmt]
-
-data Stmt =
-  Var [String] [Stmt] |
-  Pre Expr                |
-  Post Expr               |
-  Inv Expr Stmt           |
-  While Expr [Stmt]       |
-  If Expr Stmt Stmt       |
-  Assign Expr Expr        |
-  Skip
+{-data Stmt = Var [String] [Stmt]
+  | Prog String [Expr] [Stmt]
+  | Pre Expr
+  | Post Expr
+  | Inv Expr Stmt
+  | While Expr [Stmt]
+  | If Expr Stmt Stmt
+  | Assign Expr Expr
+  | Skip
   deriving (Eq,Show)
 
-data Expr =
-  Lit SInteger        |
-  Name String         |
-  ForAll String Expr  |
-  Minus Expr Expr     |
-  Plus Expr Expr      |
-  Equal Expr Expr     |
-  Lower Expr Expr     |
-  LowerE Expr Expr    |
-  And Expr Expr       |
-  Or Expr Expr        |
-  Not Expr            |
-  Impl Expr Expr      |
-  True_               |
-  Repby Expr Expr Expr
-  deriving (Show,Eq)
+data Expr = Lit SInteger
+  | Name String
+  | PCall String [Expr]
+  | ForAll String Expr
+  | Minus Expr Expr
+  | Plus Expr Expr
+  | Equal Expr Expr
+  | Lower Expr Expr
+  | LowerE Expr Expr
+  | And Expr Expr
+  | Or Expr Expr
+  | Not Expr
+  | Impl Expr Expr
+  | True_
+  | Repby Expr Expr Expr
+  deriving (Show,Eq)-}
 
 data AsgTarget = AsgTarget String [Expr]
 {-instance Show Expr where
@@ -72,10 +72,16 @@ inv pred body = Inv pred body
 ref :: String -> Expr
 ref s = Name s
 
+prog :: String -> [String] -> [Stmt] -> Stmt
+prog s params stmts = Prog s params stmts
+
+pcall :: String -> [Expr] -> Expr
+pcall name args = PCall name args
+
 forall :: String -> Expr -> Expr
 forall var' body = ForAll var' body
 
-if_then_else :: Expr -> Stmt -> Stmt -> Stmt
+if_then_else :: Expr -> [Stmt] -> [Stmt] -> Stmt
 if_then_else cond br1 br2 = If cond br1 br2
 
 while :: Expr -> [Stmt] -> Stmt
