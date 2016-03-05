@@ -3,6 +3,8 @@ module Transformer where
 import qualified Data.List as L
 import qualified Data.Set as S
 import qualified Data.Map as M
+import qualified Data.Maybe as ME
+import qualified Data.SBV as SBV
 
 import Data.SBV(modelExists)
 import SyntaxTransformer
@@ -71,7 +73,10 @@ wlp (Var vars s) q = do
     p <- foldWlp q s
     return p
 wlp (Assign (Name s) e2) q = do
-    let assign = assignQ q s e2
+    let assign = assignQ q (s, Nothing) e2
+    return $ ([],assign)
+wlp (Assign (Repby (Name s) (Lit i)) e2) q = do
+    let assign = assignQ q (s,Just i) e2
     return $ ([],assign)
 wlp (Post e) q = do
     return $ ([],e .&& q)
@@ -95,9 +100,9 @@ wlp (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp _ _ = error "Not supported by our wlp function"
 
 --The assignQ is for now only allowing variable names.
-assignQ :: Expr -> String -> Expr -> Expr
+assignQ :: Expr -> (String, Maybe SBV.SInteger) -> Expr -> Expr
 assignQ (Lit i)        ref expr = Lit i
-assignQ (Name s)       ref expr | s == ref = expr --a is the assigned value.
+assignQ (Name s)       ref expr | s == fst ref = expr --a is the assigned value.
                              | otherwise = Name s
 assignQ (ForAll s e)   ref expr = ForAll s $ assignQ e ref expr
 assignQ (Minus e1 e2)  ref expr = Minus  (assignQ e1 ref expr) (assignQ e2 ref expr)
@@ -109,7 +114,9 @@ assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref e
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Not e1)       ref expr = Not    e1
 assignQ True_          ref expr = True_
---assignQ (Repby var index value) n = Repby (assignQ var n) index (assignQ value n)
+assignQ e1@(Repby var (Lit index)) ref expr  | index == (ME.fromJust $ snd ref) = Repby (assignQ var ref expr) (Lit index)
+                                             | otherwise = e1
+
 
 name :: Expr -> String
 name (Name s) = s
@@ -153,9 +160,9 @@ freshVarsExpr vars newvars n (Name s) =
   case M.lookup s newvars of
     Nothing -> (n,Name s)
     Just s' -> (n,Name s')
-freshVarsExpr vars newvars n (Plus e1 e2) = 
-  let (n', e1') = freshVarsExpr vars newvars n e1
-      (n'', e2') = freshVarsExpr vars newvars n' e2
+updateVarInExpr vars newvars n (Repby var index) =
+  let (n', var') = updateVarInExpr vars newvars n var
+  in (n', Repby var' index)
   in  (n'', Plus e1' e2')
 freshVarsExpr vars newvars n (Minus e1 e2) = 
   let (n', e1') = freshVarsExpr vars newvars n e1
@@ -201,6 +208,7 @@ collectVars (While _ stmts) = foldr (S.union . collectVars) S.empty stmts
 collectVars (If _ stmt1 stmt2) = S.union (collectVars stmt1) (collectVars stmt2)
 collectVars _ = S.empty-}
 
+list = [(1,"das"),(2,"dasd")]
 implIsValid :: Expr -> Expr -> IO Bool
 implIsValid e1 e2 = do
   validity <- proveImpl e1 e2

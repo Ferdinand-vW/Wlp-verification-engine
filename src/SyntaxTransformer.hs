@@ -155,7 +155,7 @@ data Expr = Lit (SInteger)
           | Or (Expr) (Expr)
           | Impl (Expr) (Expr)
           | Not (Expr)
-          | Repby (Expr) (Expr) (Expr)
+          | Repby (Expr) (Expr)
           | True_
           deriving ( Eq,Show)
 -- cata
@@ -187,8 +187,8 @@ sem_Expr (Impl _expr1 _expr2) =
     (sem_Expr_Impl (sem_Expr _expr1) (sem_Expr _expr2))
 sem_Expr (Not _expr) =
     (sem_Expr_Not (sem_Expr _expr))
-sem_Expr (Repby _expr1 _expr2 _expr3) =
-    (sem_Expr_Repby (sem_Expr _expr1) (sem_Expr _expr2) (sem_Expr _expr3))
+sem_Expr (Repby _expr1 _expr2) =
+    (sem_Expr_Repby (sem_Expr _expr1) (sem_Expr _expr2))
 sem_Expr (True_) =
     (sem_Expr_True_)
 -- semantic domain
@@ -1054,9 +1054,8 @@ sem_Expr_Not expr_ =
           in  ( _lhsOallVars,_lhsOcountSyn,_lhsOfresh)))
 sem_Expr_Repby :: T_Expr ->
                   T_Expr ->
-                  T_Expr ->
                   T_Expr
-sem_Expr_Repby expr1_ expr2_ expr3_ =
+sem_Expr_Repby expr1_ expr2_ =
     (\ _lhsIcountInh
        _lhsIvarMap
        _lhsIvars ->
@@ -1065,93 +1064,70 @@ sem_Expr_Repby expr1_ expr2_ expr3_ =
               _lhsOcountSyn :: Int
               _expr1OcountInh :: Int
               _expr2OcountInh :: Int
-              _expr3OcountInh :: Int
               _expr1Ovars :: ([String])
               _expr2Ovars :: ([String])
-              _expr3Ovars :: ([String])
               _expr1OvarMap :: (M.Map String String)
               _expr2OvarMap :: (M.Map String String)
-              _expr3OvarMap :: (M.Map String String)
               _expr1IallVars :: (S.Set String)
               _expr1IcountSyn :: Int
               _expr1Ifresh :: Expr
               _expr2IallVars :: (S.Set String)
               _expr2IcountSyn :: Int
               _expr2Ifresh :: Expr
-              _expr3IallVars :: (S.Set String)
-              _expr3IcountSyn :: Int
-              _expr3Ifresh :: Expr
               _lhsOallVars =
                   ({-# LINE 238 "SyntaxTransformer.ag" #-}
-                   S.union (S.union _expr1IallVars _expr2IallVars) _expr3IallVars
-                   {-# LINE 1088 "SyntaxTransformer.hs" #-}
+                   S.union _expr1IallVars _expr2IallVars
+                   {-# LINE 1081 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 239 "SyntaxTransformer.ag" #-}
-                   Repby _expr1Ifresh _expr2Ifresh _expr3Ifresh
-                   {-# LINE 1093 "SyntaxTransformer.hs" #-}
+                   Repby _expr1Ifresh _expr2Ifresh
+                   {-# LINE 1086 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 240 "SyntaxTransformer.ag" #-}
-                   _expr3IcountSyn
-                   {-# LINE 1098 "SyntaxTransformer.hs" #-}
+                   _expr2IcountSyn
+                   {-# LINE 1091 "SyntaxTransformer.hs" #-}
                    )
               _expr1OcountInh =
                   ({-# LINE 241 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1103 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1096 "SyntaxTransformer.hs" #-}
                    )
               _expr2OcountInh =
                   ({-# LINE 242 "SyntaxTransformer.ag" #-}
                    _expr1IcountSyn
-                   {-# LINE 1108 "SyntaxTransformer.hs" #-}
-                   )
-              _expr3OcountInh =
-                  ({-# LINE 243 "SyntaxTransformer.ag" #-}
-                   _expr2IcountSyn
-                   {-# LINE 1113 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1101 "SyntaxTransformer.hs" #-}
                    )
               _expr1Ovars =
-                  ({-# LINE 244 "SyntaxTransformer.ag" #-}
+                  ({-# LINE 243 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1118 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1106 "SyntaxTransformer.hs" #-}
                    )
               _expr2Ovars =
-                  ({-# LINE 245 "SyntaxTransformer.ag" #-}
+                  ({-# LINE 244 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1123 "SyntaxTransformer.hs" #-}
-                   )
-              _expr3Ovars =
-                  ({-# LINE 246 "SyntaxTransformer.ag" #-}
-                   _lhsIvars
-                   {-# LINE 1128 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1111 "SyntaxTransformer.hs" #-}
                    )
               _expr1OvarMap =
-                  ({-# LINE 247 "SyntaxTransformer.ag" #-}
+                  ({-# LINE 245 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1133 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1116 "SyntaxTransformer.hs" #-}
                    )
               _expr2OvarMap =
-                  ({-# LINE 248 "SyntaxTransformer.ag" #-}
+                  ({-# LINE 246 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1138 "SyntaxTransformer.hs" #-}
-                   )
-              _expr3OvarMap =
-                  ({-# LINE 249 "SyntaxTransformer.ag" #-}
-                   _lhsIvarMap
-                   {-# LINE 1143 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1121 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
-                   Repby _expr1Ifresh _expr2Ifresh _expr3Ifresh
-                   {-# LINE 1148 "SyntaxTransformer.hs" #-}
+                   Repby _expr1Ifresh _expr2Ifresh
+                   {-# LINE 1126 "SyntaxTransformer.hs" #-}
                    )
               ( _expr1IallVars,_expr1IcountSyn,_expr1Ifresh) =
                   expr1_ _expr1OcountInh _expr1OvarMap _expr1Ovars
               ( _expr2IallVars,_expr2IcountSyn,_expr2Ifresh) =
                   expr2_ _expr2OcountInh _expr2OvarMap _expr2Ovars
-              ( _expr3IallVars,_expr3IcountSyn,_expr3Ifresh) =
-                  expr3_ _expr3OcountInh _expr3OvarMap _expr3Ovars
           in  ( _lhsOallVars,_lhsOcountSyn,_lhsOfresh)))
 sem_Expr_True_ :: T_Expr
 sem_Expr_True_ =
@@ -1162,24 +1138,24 @@ sem_Expr_True_ =
               _lhsOfresh :: Expr
               _lhsOcountSyn :: Int
               _lhsOallVars =
-                  ({-# LINE 250 "SyntaxTransformer.ag" #-}
+                  ({-# LINE 247 "SyntaxTransformer.ag" #-}
                    S.empty
-                   {-# LINE 1168 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1144 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
-                  ({-# LINE 251 "SyntaxTransformer.ag" #-}
+                  ({-# LINE 248 "SyntaxTransformer.ag" #-}
                    True_
-                   {-# LINE 1173 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1149 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
-                  ({-# LINE 252 "SyntaxTransformer.ag" #-}
+                  ({-# LINE 249 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1178 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1154 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    True_
-                   {-# LINE 1183 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1159 "SyntaxTransformer.hs" #-}
                    )
           in  ( _lhsOallVars,_lhsOcountSyn,_lhsOfresh)))
 -- Exprs -------------------------------------------------------
@@ -1227,52 +1203,52 @@ sem_Exprs_Cons hd_ tl_ =
               _lhsOallVars =
                   ({-# LINE 121 "SyntaxTransformer.ag" #-}
                    S.union _hdIallVars _tlIallVars
-                   {-# LINE 1231 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1207 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 122 "SyntaxTransformer.ag" #-}
                    _hdIfresh : _tlIfresh
-                   {-# LINE 1236 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1212 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 123 "SyntaxTransformer.ag" #-}
                    _tlIcountSyn
-                   {-# LINE 1241 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1217 "SyntaxTransformer.hs" #-}
                    )
               _hdOcountInh =
                   ({-# LINE 124 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1246 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1222 "SyntaxTransformer.hs" #-}
                    )
               _tlOcountInh =
                   ({-# LINE 125 "SyntaxTransformer.ag" #-}
                    _hdIcountSyn
-                   {-# LINE 1251 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1227 "SyntaxTransformer.hs" #-}
                    )
               _hdOvars =
                   ({-# LINE 126 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1256 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1232 "SyntaxTransformer.hs" #-}
                    )
               _tlOvars =
                   ({-# LINE 127 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1261 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1237 "SyntaxTransformer.hs" #-}
                    )
               _hdOvarMap =
                   ({-# LINE 128 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1266 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1242 "SyntaxTransformer.hs" #-}
                    )
               _tlOvarMap =
                   ({-# LINE 129 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1271 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1247 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    (:) _hdIfresh _tlIfresh
-                   {-# LINE 1276 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1252 "SyntaxTransformer.hs" #-}
                    )
               ( _hdIallVars,_hdIcountSyn,_hdIfresh) =
                   hd_ _hdOcountInh _hdOvarMap _hdOvars
@@ -1290,22 +1266,22 @@ sem_Exprs_Nil =
               _lhsOallVars =
                   ({-# LINE 130 "SyntaxTransformer.ag" #-}
                    S.empty
-                   {-# LINE 1294 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1270 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 131 "SyntaxTransformer.ag" #-}
                    []
-                   {-# LINE 1299 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1275 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 132 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1304 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1280 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    []
-                   {-# LINE 1309 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1285 "SyntaxTransformer.hs" #-}
                    )
           in  ( _lhsOallVars,_lhsOcountSyn,_lhsOfresh)))
 -- Stmt --------------------------------------------------------
@@ -1372,57 +1348,57 @@ sem_Stmt_Var vars_ body_ =
               _lhsOallVars =
                   ({-# LINE 40 "SyntaxTransformer.ag" #-}
                    S.union (S.fromList vars_) _bodyIallVars
-                   {-# LINE 1376 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1352 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 41 "SyntaxTransformer.ag" #-}
                    _bodyIcountSyn
-                   {-# LINE 1381 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1357 "SyntaxTransformer.hs" #-}
                    )
               _bodyOcountInh =
                   ({-# LINE 42 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh + 1
-                   {-# LINE 1386 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1362 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 43 "SyntaxTransformer.ag" #-}
                    Var (L.union _remVars     _freshVars    ) _bodyIfresh
-                   {-# LINE 1391 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1367 "SyntaxTransformer.hs" #-}
                    )
               _bodyOvars =
                   ({-# LINE 44 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1396 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1372 "SyntaxTransformer.hs" #-}
                    )
               _bodyOvarMap =
                   ({-# LINE 45 "SyntaxTransformer.ag" #-}
                    M.union _freshVarsMap     _lhsIvarMap
-                   {-# LINE 1401 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1377 "SyntaxTransformer.hs" #-}
                    )
               _dupVars =
                   ({-# LINE 46 "SyntaxTransformer.ag" #-}
                    L.intersect _lhsIvars vars_
-                   {-# LINE 1406 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1382 "SyntaxTransformer.hs" #-}
                    )
               _freshVars =
                   ({-# LINE 47 "SyntaxTransformer.ag" #-}
                    map (++ show _lhsIcountInh) _dupVars
-                   {-# LINE 1411 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1387 "SyntaxTransformer.hs" #-}
                    )
               _freshVarsMap =
                   ({-# LINE 48 "SyntaxTransformer.ag" #-}
                    M.fromList $ zip _dupVars     _freshVars
-                   {-# LINE 1416 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1392 "SyntaxTransformer.hs" #-}
                    )
               _remVars =
                   ({-# LINE 49 "SyntaxTransformer.ag" #-}
                    vars_ L.\\ _dupVars
-                   {-# LINE 1421 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1397 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    Var vars_ _bodyIfresh
-                   {-# LINE 1426 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1402 "SyntaxTransformer.hs" #-}
                    )
               ( _bodyIallVars,_bodyIcountSyn,_bodyIfresh) =
                   body_ _bodyOcountInh _bodyOvarMap _bodyOvars
@@ -1447,57 +1423,57 @@ sem_Stmt_Prog name_ params_ body_ =
               _lhsOallVars =
                   ({-# LINE 50 "SyntaxTransformer.ag" #-}
                    _bodyIallVars
-                   {-# LINE 1451 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1427 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 51 "SyntaxTransformer.ag" #-}
                    _bodyIcountSyn
-                   {-# LINE 1456 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1432 "SyntaxTransformer.hs" #-}
                    )
               _bodyOcountInh =
                   ({-# LINE 52 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh + 1
-                   {-# LINE 1461 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1437 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 53 "SyntaxTransformer.ag" #-}
                    Prog name_ (L.union _remVars     _freshVars    ) _bodyIfresh
-                   {-# LINE 1466 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1442 "SyntaxTransformer.hs" #-}
                    )
               _dupVars =
                   ({-# LINE 54 "SyntaxTransformer.ag" #-}
                    L.intersect _lhsIvars params_
-                   {-# LINE 1471 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1447 "SyntaxTransformer.hs" #-}
                    )
               _freshVars =
                   ({-# LINE 55 "SyntaxTransformer.ag" #-}
                    map (++ show _lhsIcountInh) _dupVars
-                   {-# LINE 1476 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1452 "SyntaxTransformer.hs" #-}
                    )
               _freshVarsMap =
                   ({-# LINE 56 "SyntaxTransformer.ag" #-}
                    M.fromList $ zip _dupVars     _freshVars
-                   {-# LINE 1481 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1457 "SyntaxTransformer.hs" #-}
                    )
               _remVars =
                   ({-# LINE 57 "SyntaxTransformer.ag" #-}
                    params_ L.\\ _dupVars
-                   {-# LINE 1486 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1462 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    Prog name_ params_ _bodyIfresh
-                   {-# LINE 1491 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1467 "SyntaxTransformer.hs" #-}
                    )
               _bodyOvarMap =
                   ({-# LINE 37 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1496 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1472 "SyntaxTransformer.hs" #-}
                    )
               _bodyOvars =
                   ({-# LINE 36 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1501 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1477 "SyntaxTransformer.hs" #-}
                    )
               ( _bodyIallVars,_bodyIcountSyn,_bodyIfresh) =
                   body_ _bodyOcountInh _bodyOvarMap _bodyOvars
@@ -1520,37 +1496,37 @@ sem_Stmt_Pre expr_ =
               _lhsOallVars =
                   ({-# LINE 58 "SyntaxTransformer.ag" #-}
                    S.empty
-                   {-# LINE 1524 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1500 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 59 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1529 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1505 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 60 "SyntaxTransformer.ag" #-}
                    Pre _exprIfresh
-                   {-# LINE 1534 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1510 "SyntaxTransformer.hs" #-}
                    )
               _exprOvars =
                   ({-# LINE 61 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1539 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1515 "SyntaxTransformer.hs" #-}
                    )
               _exprOvarMap =
                   ({-# LINE 62 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1544 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1520 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    Pre _exprIfresh
-                   {-# LINE 1549 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1525 "SyntaxTransformer.hs" #-}
                    )
               _exprOcountInh =
                   ({-# LINE 34 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1554 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1530 "SyntaxTransformer.hs" #-}
                    )
               ( _exprIallVars,_exprIcountSyn,_exprIfresh) =
                   expr_ _exprOcountInh _exprOvarMap _exprOvars
@@ -1573,37 +1549,37 @@ sem_Stmt_Post expr_ =
               _lhsOallVars =
                   ({-# LINE 63 "SyntaxTransformer.ag" #-}
                    S.empty
-                   {-# LINE 1577 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1553 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 64 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1582 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1558 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 65 "SyntaxTransformer.ag" #-}
                    Post _exprIfresh
-                   {-# LINE 1587 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1563 "SyntaxTransformer.hs" #-}
                    )
               _exprOvars =
                   ({-# LINE 66 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1592 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1568 "SyntaxTransformer.hs" #-}
                    )
               _exprOvarMap =
                   ({-# LINE 67 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1597 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1573 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    Post _exprIfresh
-                   {-# LINE 1602 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1578 "SyntaxTransformer.hs" #-}
                    )
               _exprOcountInh =
                   ({-# LINE 34 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1607 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1583 "SyntaxTransformer.hs" #-}
                    )
               ( _exprIallVars,_exprIcountSyn,_exprIfresh) =
                   expr_ _exprOcountInh _exprOvarMap _exprOvars
@@ -1633,52 +1609,52 @@ sem_Stmt_Inv expr_ stmt_ =
               _lhsOallVars =
                   ({-# LINE 68 "SyntaxTransformer.ag" #-}
                    _stmtIallVars
-                   {-# LINE 1637 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1613 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 69 "SyntaxTransformer.ag" #-}
                    _stmtIcountSyn
-                   {-# LINE 1642 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1618 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 70 "SyntaxTransformer.ag" #-}
                    Inv _exprIfresh _stmtIfresh
-                   {-# LINE 1647 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1623 "SyntaxTransformer.hs" #-}
                    )
               _stmtOcountInh =
                   ({-# LINE 71 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1652 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1628 "SyntaxTransformer.hs" #-}
                    )
               _stmtOvars =
                   ({-# LINE 72 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1657 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1633 "SyntaxTransformer.hs" #-}
                    )
               _stmtOvarMap =
                   ({-# LINE 73 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1662 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1638 "SyntaxTransformer.hs" #-}
                    )
               _exprOvars =
                   ({-# LINE 74 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1667 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1643 "SyntaxTransformer.hs" #-}
                    )
               _exprOvarMap =
                   ({-# LINE 75 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1672 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1648 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    Inv _exprIfresh _stmtIfresh
-                   {-# LINE 1677 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1653 "SyntaxTransformer.hs" #-}
                    )
               _exprOcountInh =
                   ({-# LINE 34 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1682 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1658 "SyntaxTransformer.hs" #-}
                    )
               ( _exprIallVars,_exprIcountSyn,_exprIfresh) =
                   expr_ _exprOcountInh _exprOvarMap _exprOvars
@@ -1710,52 +1686,52 @@ sem_Stmt_While expr_ body_ =
               _lhsOallVars =
                   ({-# LINE 76 "SyntaxTransformer.ag" #-}
                    _bodyIallVars
-                   {-# LINE 1714 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1690 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 77 "SyntaxTransformer.ag" #-}
                    _bodyIcountSyn
-                   {-# LINE 1719 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1695 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 78 "SyntaxTransformer.ag" #-}
                    While _exprIfresh _bodyIfresh
-                   {-# LINE 1724 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1700 "SyntaxTransformer.hs" #-}
                    )
               _bodyOcountInh =
                   ({-# LINE 79 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1729 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1705 "SyntaxTransformer.hs" #-}
                    )
               _bodyOvars =
                   ({-# LINE 80 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1734 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1710 "SyntaxTransformer.hs" #-}
                    )
               _bodyOvarMap =
                   ({-# LINE 81 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1739 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1715 "SyntaxTransformer.hs" #-}
                    )
               _exprOvars =
                   ({-# LINE 82 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1744 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1720 "SyntaxTransformer.hs" #-}
                    )
               _exprOvarMap =
                   ({-# LINE 83 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1749 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1725 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    While _exprIfresh _bodyIfresh
-                   {-# LINE 1754 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1730 "SyntaxTransformer.hs" #-}
                    )
               _exprOcountInh =
                   ({-# LINE 34 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1759 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1735 "SyntaxTransformer.hs" #-}
                    )
               ( _exprIallVars,_exprIcountSyn,_exprIfresh) =
                   expr_ _exprOcountInh _exprOvarMap _exprOvars
@@ -1794,67 +1770,67 @@ sem_Stmt_If expr_ left_ right_ =
               _lhsOallVars =
                   ({-# LINE 84 "SyntaxTransformer.ag" #-}
                    S.union _leftIallVars _rightIallVars
-                   {-# LINE 1798 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1774 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 85 "SyntaxTransformer.ag" #-}
                    _rightIcountSyn
-                   {-# LINE 1803 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1779 "SyntaxTransformer.hs" #-}
                    )
               _leftOcountInh =
                   ({-# LINE 86 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1808 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1784 "SyntaxTransformer.hs" #-}
                    )
               _rightOcountInh =
                   ({-# LINE 87 "SyntaxTransformer.ag" #-}
                    _leftIcountSyn
-                   {-# LINE 1813 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1789 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 88 "SyntaxTransformer.ag" #-}
                    If _exprIfresh _leftIfresh _rightIfresh
-                   {-# LINE 1818 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1794 "SyntaxTransformer.hs" #-}
                    )
               _leftOvars =
                   ({-# LINE 89 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1823 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1799 "SyntaxTransformer.hs" #-}
                    )
               _leftOvarMap =
                   ({-# LINE 90 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1828 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1804 "SyntaxTransformer.hs" #-}
                    )
               _rightOvars =
                   ({-# LINE 91 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1833 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1809 "SyntaxTransformer.hs" #-}
                    )
               _rightOvarMap =
                   ({-# LINE 92 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1838 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1814 "SyntaxTransformer.hs" #-}
                    )
               _exprOvars =
                   ({-# LINE 93 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1843 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1819 "SyntaxTransformer.hs" #-}
                    )
               _exprOvarMap =
                   ({-# LINE 94 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1848 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1824 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    If _exprIfresh _leftIfresh _rightIfresh
-                   {-# LINE 1853 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1829 "SyntaxTransformer.hs" #-}
                    )
               _exprOcountInh =
                   ({-# LINE 34 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1858 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1834 "SyntaxTransformer.hs" #-}
                    )
               ( _exprIallVars,_exprIcountSyn,_exprIfresh) =
                   expr_ _exprOcountInh _exprOvarMap _exprOvars
@@ -1888,52 +1864,52 @@ sem_Stmt_Assign expr1_ expr2_ =
               _lhsOallVars =
                   ({-# LINE 95 "SyntaxTransformer.ag" #-}
                    S.empty
-                   {-# LINE 1892 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1868 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 96 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1897 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1873 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 97 "SyntaxTransformer.ag" #-}
                    Assign _expr1Ifresh _expr2Ifresh
-                   {-# LINE 1902 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1878 "SyntaxTransformer.hs" #-}
                    )
               _expr1Ovars =
                   ({-# LINE 98 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1907 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1883 "SyntaxTransformer.hs" #-}
                    )
               _expr2Ovars =
                   ({-# LINE 99 "SyntaxTransformer.ag" #-}
                    _lhsIvars
-                   {-# LINE 1912 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1888 "SyntaxTransformer.hs" #-}
                    )
               _expr1OvarMap =
                   ({-# LINE 100 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1917 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1893 "SyntaxTransformer.hs" #-}
                    )
               _expr2OvarMap =
                   ({-# LINE 101 "SyntaxTransformer.ag" #-}
                    _lhsIvarMap
-                   {-# LINE 1922 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1898 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    Assign _expr1Ifresh _expr2Ifresh
-                   {-# LINE 1927 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1903 "SyntaxTransformer.hs" #-}
                    )
               _expr1OcountInh =
                   ({-# LINE 34 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1932 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1908 "SyntaxTransformer.hs" #-}
                    )
               _expr2OcountInh =
                   ({-# LINE 34 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1937 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1913 "SyntaxTransformer.hs" #-}
                    )
               ( _expr1IallVars,_expr1IcountSyn,_expr1Ifresh) =
                   expr1_ _expr1OcountInh _expr1OvarMap _expr1Ovars
@@ -1951,22 +1927,22 @@ sem_Stmt_Skip =
               _lhsOallVars =
                   ({-# LINE 102 "SyntaxTransformer.ag" #-}
                    S.empty
-                   {-# LINE 1955 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1931 "SyntaxTransformer.hs" #-}
                    )
               _lhsOcountSyn =
                   ({-# LINE 103 "SyntaxTransformer.ag" #-}
                    _lhsIcountInh
-                   {-# LINE 1960 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1936 "SyntaxTransformer.hs" #-}
                    )
               _lhsOfresh =
                   ({-# LINE 104 "SyntaxTransformer.ag" #-}
                    Skip
-                   {-# LINE 1965 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1941 "SyntaxTransformer.hs" #-}
                    )
               _fresh =
                   ({-# LINE 33 "SyntaxTransformer.ag" #-}
                    Skip
-                   {-# LINE 1970 "SyntaxTransformer.hs" #-}
+                   {-# LINE 1946 "SyntaxTransformer.hs" #-}
                    )
           in  ( _lhsOallVars,_lhsOcountSyn,_lhsOfresh)))
 -- Top ---------------------------------------------------------
@@ -1999,22 +1975,22 @@ sem_Top_Top stmt_ =
          _lhsOtransformed =
              ({-# LINE 26 "SyntaxTransformer.ag" #-}
               _stmtIfresh
-              {-# LINE 2003 "SyntaxTransformer.hs" #-}
+              {-# LINE 1979 "SyntaxTransformer.hs" #-}
               )
          _stmtOvarMap =
              ({-# LINE 27 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 2008 "SyntaxTransformer.hs" #-}
+              {-# LINE 1984 "SyntaxTransformer.hs" #-}
               )
          _stmtOvars =
              ({-# LINE 28 "SyntaxTransformer.ag" #-}
               S.toList _stmtIallVars
-              {-# LINE 2013 "SyntaxTransformer.hs" #-}
+              {-# LINE 1989 "SyntaxTransformer.hs" #-}
               )
          _stmtOcountInh =
              ({-# LINE 29 "SyntaxTransformer.ag" #-}
               0
-              {-# LINE 2018 "SyntaxTransformer.hs" #-}
+              {-# LINE 1994 "SyntaxTransformer.hs" #-}
               )
          ( _stmtIallVars,_stmtIcountSyn,_stmtIfresh) =
              stmt_ _stmtOcountInh _stmtOvarMap _stmtOvars

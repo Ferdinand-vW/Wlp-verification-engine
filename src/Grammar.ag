@@ -26,7 +26,7 @@ data Expr
   | Or      expr1 :: Expr   expr2 :: Expr
   | Impl    expr1 :: Expr   expr2 :: Expr
   | Not     expr :: Expr
-  | Repby   expr1 :: Expr   expr2 :: Expr expr3 :: Expr
+  | Repby   expr1 :: Expr   expr2 :: Expr
   | True_
 
 deriving Stmt : Show
