@@ -95,9 +95,7 @@ mkSymInt vars arr (Plus e1 e2) = mkInt vars arr (+) e1 e2
 mkSymInt vars arr (Lit i) = return i
 mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
 mkSymInt vars arr (Repby (Name s) (Lit index)) = return $ readArray (fromJust $ M.lookup s arr) index
---mkSymInt vars arr (Repby (Name s) (Name index)) = error ("Ik mag hier niet komen" ++ (show $ elem s (fst $ unzip $ M.toList arr)))
 mkSymInt vars arr (Repby (Name s) (Name index))  = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
--- | otherwise = error $ show index ++ "Dit kan niet voorkomen" ++ show ((fst $ unzip $ M.toList vars))
 
 mkInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> (SInteger -> SInteger -> SInteger) -> Expr -> Expr -> Symbolic SInteger
 mkInt _ _ op (Lit i) (Lit j) = return $ i `op` j
