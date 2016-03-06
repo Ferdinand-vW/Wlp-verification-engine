@@ -44,14 +44,14 @@ s2 = var ["x" , "y"]
 s3 :: Stmt
 s3 = var ["a", "i", "j","k"] [
              assume (i 0 .<=  ref "i") , 
-            ref "a" `repby` ref "i" .=  i 10,
-            ref "a" `repby` ref "j" .=  i 11,
-            assert (ref "a" `repby` ref "i" .== i 10)
+            (ref "a" `repby` ref "i").=  i 10,
+            (ref "a" `repby` ref "j") .=  i 11,
+            assert ((ref "a" `repby` ref "j") .== i 12)
           ]
 
 swap :: Stmt
 swap = var ["a", "i", "j", "tmp", "c", "b"] 
-            [assume ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b")), 
+            [assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")), 
             ref "tmp" .=  ref "a" `repby` ref "i",
                 ref "a" `repby` ref "i" .=  ref "a" `repby` ref "j",
                 ref "a" `repby` ref "j" .=  ref "i",
@@ -74,7 +74,7 @@ swap'' = var ["a", "i", "j", "tmp", "c", "b"]
             ref "tmp" .=  ref "a" `repby` i 0,
                 ref "a" `repby` i 0 .=  ref "a" `repby` i 1,
                 ref "a" `repby` i 1 .=  ref "tmp",
-                assert ((ref "tmp" .== ref "b") .&& (ref "a" `repby` i 0 .== ref "c") .&& (ref "a" `repby` i 1 .== ref "b"))
+                assert ((ref "a" `repby` i 0 .== ref "c") .&& (ref "a" `repby` i 1 .== ref "b"))
             ]
 verifyProgram :: Stmt -> IO ()
 verifyProgram stmt = do
@@ -151,7 +151,7 @@ assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref e
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Not e1)       ref expr = Not    e1
 assignQ True_          ref expr = True_
-assignQ (Repby (Name s) index) ref expr | index == (MA.fromJust $ snd ref) &&  s == fst ref = expr
+assignQ (Repby (Name s) index) ref expr | snd ref /= Nothing && index == (MA.fromJust $ snd ref) &&  s == fst ref = expr
                                               | otherwise = (Repby (Name s) index)
 
 

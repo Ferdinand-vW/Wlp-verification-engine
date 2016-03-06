@@ -20,7 +20,7 @@ proveImpl e1 e2 = do
       varSet = S.filter (\(a,t) -> t==AInteger) $ S.union e1Vars e2Vars
       arrSet = S.filter (\(a,t) -> t==Array) $ S.union e1Vars e2Vars
   putStrLn $ "Varset: " ++ show varSet
-  putStrLn $ "Arrset: " ++ show e2Vars
+  putStrLn $ "Arrset: " ++ show arrSet
   vars <- return $ foldM (\y x -> do
     z <- sInteger x
     return $ M.insert x z y
@@ -94,7 +94,10 @@ mkSymInt vars arr (Minus e1 e2) = mkInt vars arr (-) e1 e2
 mkSymInt vars arr (Plus e1 e2) = mkInt vars arr (+) e1 e2
 mkSymInt vars arr (Lit i) = return i
 mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
-mkSymInt vars arr (Repby (Name s) (Lit i)) = return $ readArray (fromJust $ M.lookup s arr) i
+mkSymInt vars arr (Repby (Name s) (Lit index)) = return $ readArray (fromJust $ M.lookup s arr) index
+--mkSymInt vars arr (Repby (Name s) (Name index)) = error ("Ik mag hier niet komen" ++ (show $ elem s (fst $ unzip $ M.toList arr)))
+mkSymInt vars arr (Repby (Name s) (Name index))  = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
+-- | otherwise = error $ show index ++ "Dit kan niet voorkomen" ++ show ((fst $ unzip $ M.toList vars))
 
 mkInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> (SInteger -> SInteger -> SInteger) -> Expr -> Expr -> Symbolic SInteger
 mkInt _ _ op (Lit i) (Lit j) = return $ i `op` j
@@ -141,7 +144,8 @@ collectVars (Or e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (Not e) = collectVars e
 collectVars (Impl e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (ForAll s e) = S.difference (collectVars e) (S.singleton (s, AInteger))
-collectVars (Repby (Name s) i) = S.singleton (s, Array) 
+collectVars (Repby (Name e1) (Name e2)) = S.union (S.singleton (e1,Array)) (S.singleton (e2, AInteger))
+collectVars (Repby (Name s) i) = S.singleton (s, Array)
 collectVars expr = error $ "Could not identify: " ++ show expr
 
 --Check the type of the var
