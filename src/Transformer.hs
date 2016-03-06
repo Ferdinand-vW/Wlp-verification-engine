@@ -38,13 +38,22 @@ s2 = var ["x" , "y"]
                 assert (ref "y" .== i 0)
             ]
 
+s3 = var ["x","y"]
+      [
+        assume (ref "x" .< i 0),
+        prog "inc" ["x"] ["a"]
+          [
+            ref "a" .= ref "x" `plus` i 1
+          ],
+        pcall "inc" [ref "x"] [ref "x"],
+        assert (ref "x" .< i 0) 
+      ]
+
 
 verifyProgram :: Stmt -> IO ()
 verifyProgram stmt = do
-  --let allVars = S.toList $ collectVars (Var xs s)
-      --(Var xs' s') = snd $ freshVars allVars M.empty 0 (Var xs s)
-      --Pre pre = head s'
-  let (Var xs stmts) = stmt_trans stmt
+  let stmt' = stmt_fresh stmt
+      (Var xs stmts) = stmt_prog stmt'
       Pre pre = head stmts
   putStrLn $ show (Var xs stmts)
   (invs,w) <- foldWlp True_ (tail stmts)
@@ -96,6 +105,7 @@ wlp (Inv i (While g s)) q  = do
     if null invs
       then return (invs,i)
       else return (invs,(.!)g .&& q)
+wlp (Prog _ _ _ _) q = return ([],q)
 wlp (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp _ _ = error "Not supported by our wlp function"
 

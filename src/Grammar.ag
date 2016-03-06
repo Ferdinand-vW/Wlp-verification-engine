@@ -3,7 +3,8 @@ type Exprs = [Expr]
 
 data Stmt
   | Var     vars :: {[String]}  body :: Body
-  | Prog    name :: String    params :: {[String]}  body :: Body
+  | Prog    name :: String    params :: {[String]} results :: {[String]} body :: Body
+  | PCall   name :: String  args :: Exprs res :: Exprs
   | Pre     expr :: Expr
   | Post    expr :: Expr
   | Inv     expr :: Expr      stmt :: Stmt
@@ -15,7 +16,6 @@ data Stmt
 data Expr
   | Lit     i :: SInteger
   | Name    var :: String
-  | PCall   name :: String  args :: Exprs
   | ForAll  var :: String   expr :: Expr
   | Minus   expr1 :: Expr   expr2 :: Expr
   | Plus    expr1 :: Expr   expr2 :: Expr

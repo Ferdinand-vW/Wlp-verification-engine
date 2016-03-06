@@ -1,11 +1,12 @@
 module {SyntaxTransformer}
 {
-Stmt(..), Expr(..), stmt_trans
+Stmt(..), Expr(..), stmt_fresh, stmt_prog
 }
 {
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.List as L
+import Data.Maybe
 import Data.SBV(SInteger)
 }
 
@@ -13,20 +14,25 @@ import Data.SBV(SInteger)
 include "Grammar.ag"
 
 {
-stmt_trans :: Stmt -> Stmt
-stmt_trans stmt = transformed_Syn_Top $ wrap_Top (sem_Top (Top stmt)) (Inh_Top)
+stmt_fresh :: Stmt -> Stmt
+stmt_fresh stmt = fresh_Syn_Top $ wrap_Top (sem_Top (Top stmt)) Inh_Top
+stmt_prog :: Stmt -> Stmt
+stmt_prog stmt = prog_Syn_Top $ wrap_Top (sem_Top (Top stmt)) Inh_Top
 }
 
 data Top | Top stmt :: Stmt
 
 attr Top
-  syn transformed :: Stmt
+  syn fresh :: Stmt
+  syn prog :: Stmt
 
 sem Top
-  | Top lhs.transformed = @stmt.fresh
+  | Top lhs.fresh = @stmt.fresh
         stmt.varMap = M.empty
         stmt.vars   = S.toList @stmt.allVars
         stmt.countInh = 0
+        stmt.allProgs = @stmt.findProgs
+        lhs.prog = @stmt.prog
 
 attr Body Stmt Exprs Expr
   syn allVars :: {S.Set String}
@@ -47,14 +53,24 @@ sem Stmt
             loc.freshVars     = map (++ show @lhs.countInh) @loc.dupVars
             loc.freshVarsMap  = M.fromList $ zip @loc.dupVars @loc.freshVars
             loc.remVars       = @vars L.\\ @loc.dupVars
-  | Prog    lhs.allVars  = @body.allVars
+  | Prog    lhs.allVars  = S.union (S.union (S.fromList @params) @body.allVars) (S.fromList @results)
             lhs.countSyn = @body.countSyn
             body.countInh = @lhs.countInh + 1
-            lhs.fresh = Prog @name (L.union @loc.remVars @loc.freshVars) @body.fresh
+            body.vars = @lhs.vars
+            body.varMap = M.union (M.union @loc.freshVarsMap @lhs.varMap) @loc.freshVarsRMap
+            lhs.fresh = Prog @name (L.union @loc.remVars @loc.freshVars) (L.union @loc.remVarsR @loc.freshVarsR) @body.fresh
             loc.dupVars = L.intersect @lhs.vars @params
+            loc.dupVarsR = L.intersect @lhs.vars @results
             loc.freshVars = map (++ show @lhs.countInh) @loc.dupVars
+            loc.freshVarsR = map (++ show @lhs.countInh) @loc.dupVarsR
             loc.freshVarsMap = M.fromList $ zip @loc.dupVars @loc.freshVars
+            loc.freshVarsRMap = M.fromList $ zip @loc.dupVarsR @loc.freshVarsR
             loc.remVars = @params L.\\ @loc.dupVars
+            loc.remVarsR = @results L.\\ @loc.dupVarsR
+  | PCall   lhs.allVars = S.empty
+            lhs.fresh = PCall @name @args.fresh @res.fresh
+            lhs.countSyn = @args.countSyn
+            args.countInh = @lhs.countInh
   | Pre     lhs.allVars  = S.empty
             lhs.countSyn = @lhs.countInh
             lhs.fresh = Pre @expr.fresh
@@ -141,10 +157,6 @@ sem Expr
                             Nothing -> Name @var
                             Just s -> Name s
             lhs.countSyn = @lhs.countInh
-  | PCall   lhs.allVars = S.empty
-            lhs.fresh = PCall @name @args.fresh
-            lhs.countSyn = @args.countSyn
-            args.countInh = @lhs.countInh
   | ForAll  lhs.allVars = S.singleton @var
             lhs.fresh = ForAll @loc.lookup @expr.fresh
             lhs.countSyn = @expr.countSyn
@@ -247,3 +259,64 @@ sem Expr
   | True_   lhs.allVars = S.empty
             lhs.fresh = True_
             lhs.countSyn = @lhs.countInh
+
+attr Body Stmt Exprs Expr
+  syn prog :: self
+
+attr Body Stmt
+  syn findProgs :: {M.Map String ([String],[String],Body)}
+  inh allProgs :: {M.Map String ([String],[String],Body)}
+
+sem Body
+  | Cons  lhs.prog = @hd.prog : @tl.prog
+          lhs.findProgs = M.union @hd.findProgs @tl.findProgs
+          hd.allProgs = @lhs.allProgs
+          tl.allProgs = @lhs.allProgs
+  | Nil   lhs.prog = []
+          lhs.findProgs = M.empty
+
+sem Stmt
+  | Var     lhs.prog = Var @vars @body.prog
+            lhs.findProgs = @body.findProgs
+            body.allProgs = @lhs.allProgs
+  | Prog    lhs.prog = Prog @name @params @results @body.prog
+            lhs.findProgs = M.union @loc.findProgs @body.findProgs
+            loc.findProgs = M.singleton @name (@params,@results,@body.prog)
+            body.allProgs = @lhs.allProgs
+  | PCall   lhs.prog = Var (@loc.prms ++ @loc.res) $
+                          [Assign (Name $ head @prms) (head @args.prog)]
+                            ++
+                          @loc.body
+                            ++
+                          [Assign (head @res.prog) (Name $ head @loc.res)]
+            loc.prms = fst3 @loc.prog
+            loc.res = snd3 @loc.prog
+            loc.body = thrd @loc.prog
+            loc.prog = fromJust $ M.lookup @name @lhs.allProgs
+            lhs.findProgs = M.empty
+  | Pre     lhs.prog = Pre @expr.prog
+            lhs.findProgs = M.empty
+  | Post    lhs.prog = Post @expr.prog
+            lhs.findProgs = M.empty
+  | Inv     lhs.prog = Inv @expr.prog @stmt.prog
+            lhs.findProgs = @stmt.findProgs
+  | While   lhs.prog = While @expr.prog @body.prog
+            lhs.findProgs = @body.findProgs
+  | If      lhs.prog = If @expr.prog @left.prog @right.prog
+            lhs.findProgs = M.union @left.findProgs @right.findProgs
+  | Assign  lhs.prog = Assign @expr1.prog @expr2.prog
+            lhs.findProgs = M.empty
+  | Skip    lhs.prog = Skip
+            lhs.findProgs = M.empty
+
+{
+
+fst3 :: (a,b,c) -> a
+fst3 (a,b,c) = a
+
+snd3 :: (a,b,c) -> b
+snd3 (a,b,c) = b
+
+thrd :: (a,b,c) -> c
+thrd (a,b,c) = c
+}

@@ -54,6 +54,9 @@ data AsgTarget = AsgTarget String [Expr]
 var :: [String] -> [Stmt] -> Stmt
 var vars body = Var vars body
 
+pcall :: String -> [Expr] -> [Expr] -> Stmt
+pcall name args vars = PCall name args vars
+
 repby :: Expr  -> Expr -> Expr
 repby var index = Repby var index
 
@@ -72,11 +75,8 @@ inv pred body = Inv pred body
 ref :: String -> Expr
 ref s = Name s
 
-prog :: String -> [String] -> [Stmt] -> Stmt
-prog s params stmts = Prog s params stmts
-
-pcall :: String -> [Expr] -> Expr
-pcall name args = PCall name args
+prog :: String -> [String] -> [String] -> [Stmt] -> Stmt
+prog s params results stmts = Prog s params results stmts
 
 forall :: String -> Expr -> Expr
 forall var' body = ForAll var' body
