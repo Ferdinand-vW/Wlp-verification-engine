@@ -41,6 +41,7 @@ s2 = var ["x" , "y"]
             ]
 
 
+<<<<<<< HEAD
 s3 :: Stmt
 s3 = var ["a", "i", "j","k"] [
              assume (i 0 .<=  ref "i") , 
@@ -76,6 +77,18 @@ swap'' = var ["a", "i", "j", "tmp", "c", "b"]
                 ref "a" `repby` i 1 .=  ref "tmp",
                 assert ((ref "tmp" .== ref "b") .&& (ref "a" `repby` i 0 .== ref "c") .&& (ref "a" `repby` i 1 .== ref "b"))
             ]
+         
+
+
+verifyProgram :: Stmt -> IO ()
+verifyProgram (Var xs s) = do
+  let allVars = S.toList $ collectVars (Var xs s)
+      (Var xs' s') = snd $ updateVars allVars M.empty 0 (Var xs s)
+      Pre pre = head s'
+  putStrLn $ "AllVars:" ++ show allVars
+  putStrLn $ show (Var xs' s')
+  (invs,w) <- foldWlp True_ (tail s')
+=======
 verifyProgram :: Stmt -> IO ()
 verifyProgram stmt = do
   --let allVars = S.toList $ collectVars (Var xs s)
@@ -85,6 +98,7 @@ verifyProgram stmt = do
       Pre pre = head stmts
   putStrLn $ show (Var xs stmts)
   (invs,w) <- foldWlp True_ (tail stmts)
+>>>>>>> 1fe349844d14faee6c2dc3267691c05d166fcef3
 
   when (not $ null invs) $ do
     putStrLn "------------------------------"
@@ -250,3 +264,12 @@ implIsValid e1 e2 = do
   validity <- proveImpl e1 e2
   putStrLn $ show validity
   return $ not $ modelExists validity
+<<<<<<< HEAD
+
+mergeEither :: (a -> a -> a) -> Either [a] a -> Either [a] a -> Either [a] a
+mergeEither _ (Left xs) (Left ys) = Left (xs ++ ys)
+mergeEither _ (Left xs) _ = Left xs
+mergeEither _ _ (Left ys) = Left ys
+mergeEither op (Right e1) (Right e2) = Right (e1 `op` e2)
+=======
+>>>>>>> 1fe349844d14faee6c2dc3267691c05d166fcef3

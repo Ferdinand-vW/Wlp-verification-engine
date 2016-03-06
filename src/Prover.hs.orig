@@ -96,10 +96,23 @@ mkSymInt vars arr (Lit i) = return i
 mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
 mkSymInt vars arr (Repby (Name s) (Lit i)) = return $ readArray (fromJust $ M.lookup s arr) i
 
+<<<<<<< HEAD
 mkInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> (SInteger -> SInteger -> SInteger) -> Expr -> Expr -> Symbolic SInteger
 mkInt _ _ op (Lit i) (Lit j) = return $ i `op` j
 mkInt vars arr op e1 (Lit j) = do
   s1 <- mkSymInt vars arr e1
+=======
+mkSymInt :: M.Map String SInteger -> Expr -> Symbolic SInteger
+mkSymInt vars (Minus e1 e2) = mkInt vars (-) e1 e2
+mkSymInt vars (Plus e1 e2) = mkInt vars (+) e1 e2
+mkSymInt vars (Lit i) = return i
+mkSymInt vars (Name s) = return $ fromJust $ M.lookup s vars
+
+mkInt :: M.Map String SInteger -> (SInteger -> SInteger -> SInteger) -> Expr -> Expr -> Symbolic SInteger
+mkInt _ op (Lit i) (Lit j) = return $ i `op` j
+mkInt vars op e1 (Lit j) = do
+  s1 <- mkSymInt vars e1
+>>>>>>> 1fe349844d14faee6c2dc3267691c05d166fcef3
   return $ s1 `op` j
 mkInt vars arr op (Lit i) e2 = do
   s2 <- mkSymInt vars arr e2

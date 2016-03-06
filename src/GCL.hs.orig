@@ -15,6 +15,7 @@ import Data.SBV(SInteger)
   | Skip
   deriving (Eq,Show)
 
+<<<<<<< HEAD
 data Expr = Lit SInteger
   | Name String
   | PCall String [Expr]
@@ -29,10 +30,26 @@ data Expr = Lit SInteger
   | Not Expr
   | Impl Expr Expr
   | True_
-  Repby Expr Expr
+  | Repby Expr Expr Expr
   deriving (Show,Eq)-}
-
-
+=======
+data Expr =
+  Lit SInteger        |
+  Name String         |
+  ForAll String Expr  |
+  Minus Expr Expr     |
+  Plus Expr Expr      |
+  Equal Expr Expr     |
+  Lower Expr Expr     |
+  LowerE Expr Expr    |
+  And Expr Expr       |
+  Or Expr Expr        |
+  Not Expr            |
+  Impl Expr Expr      |
+  True_               |
+  Repby Expr Expr
+  deriving (Show,Eq)
+>>>>>>> 951aa7bac82b67916ce3ff38ad73faa2e48f16d8
 
 data AsgTarget = AsgTarget String [Expr]
 {-instance Show Expr where

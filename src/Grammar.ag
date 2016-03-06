@@ -1,0 +1,35 @@
+type Body = [Stmt]
+type Exprs = [Expr]
+
+data Stmt
+  | Var     vars :: {[String]}  body :: Body
+  | Prog    name :: String    params :: {[String]}  body :: Body
+  | Pre     expr :: Expr
+  | Post    expr :: Expr
+  | Inv     expr :: Expr      stmt :: Stmt
+  | While   expr :: Expr      body :: Body
+  | If      expr :: Expr      left :: Body    right :: Body
+  | Assign  expr1 :: Expr     expr2 :: Expr
+  | Skip
+
+data Expr
+  | Lit     i :: SInteger
+  | Name    var :: String
+  | PCall   name :: String  args :: Exprs
+  | ForAll  var :: String   expr :: Expr
+  | Minus   expr1 :: Expr   expr2 :: Expr
+  | Plus    expr1 :: Expr   expr2 :: Expr
+  | Equal   expr1 :: Expr   expr2 :: Expr
+  | Lower   expr1 :: Expr   expr2 :: Expr
+  | LowerE  expr1 :: Expr   expr2 :: Expr
+  | And     expr1 :: Expr   expr2 :: Expr
+  | Or      expr1 :: Expr   expr2 :: Expr
+  | Impl    expr1 :: Expr   expr2 :: Expr
+  | Not     expr :: Expr
+  | Repby   expr1 :: Expr   expr2 :: Expr
+  | True_
+
+deriving Stmt : Show
+deriving Expr : Show
+deriving Stmt : Eq
+deriving Expr : Eq
