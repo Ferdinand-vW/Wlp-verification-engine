@@ -3,7 +3,7 @@ module Transformer where
 import qualified Data.List as L
 import qualified Data.Set as S
 import qualified Data.Map as M
-import qualified Data.Maybe as ME
+import qualified Data.Maybe as MA
 import qualified Data.SBV as SBV
 
 import Data.SBV(modelExists)
@@ -12,8 +12,10 @@ import Prover
 import Control.Monad
 
 s1 :: Stmt
-s1 = var ["x" , "y"] 
+s1 = var ["x" , "y","n"] 
             [ assume (i 0 .<  ref "x") ,
+                (ref "n") .= (forall "n" (forall "n" (ref "n"))),
+                (ref "n") .= (forall "n" (forall "n" (ref "n"))),
                 inv (i 0 .<= ref "x")
                     (while (i 0 .< ref "x")  [(ref "x") .= (ref "x" `minus` i 1) ]),
                 ref "y"  .= ref "x",
@@ -30,7 +32,42 @@ s2 = var ["x" , "y"]
             ]
 
 
+s3 :: Stmt
+s3 = var ["a", "i", "j","k"] [
+             assume (i 0 .<=  ref "i") , 
+            ref "a" `repby` ref "i" .=  i 10,
+            ref "a" `repby` ref "j" .=  i 11,
+            assert (ref "a" `repby` ref "i" .== i 10)
+          ]
 
+swap :: Stmt
+swap = var ["a", "i", "j", "tmp", "c", "b"] 
+            [assume ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b")), 
+            ref "tmp" .=  ref "a" `repby` ref "i",
+                ref "a" `repby` ref "i" .=  ref "a" `repby` ref "j",
+                ref "a" `repby` ref "j" .=  ref "i",
+                assert ((ref "tmp" .== ref "b") .&& (ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b"))
+            ]
+
+swap' :: Stmt
+swap' = var ["i", "j", "tmp", "c", "b"] 
+            [assume ((ref "i" .== ref "b") .&& (ref "j" .== ref "c")), 
+            ref "tmp" .= ref "i",
+                ref "i" .=  ref "j",
+                ref "j" .=  ref "tmp",
+                assert ((ref "i" .== ref "c") .&& (ref "j" .== ref "b"))
+            ]
+
+
+swap'' :: Stmt
+swap'' = var ["a", "i", "j", "tmp", "c", "b"] 
+            [assume ((ref "a" `repby` i 0 .== ref "b") .&& (ref "a" `repby` i 1 .== ref "c")), 
+            ref "tmp" .=  ref "a" `repby` i 0,
+                ref "a" `repby` i 0 .=  ref "a" `repby` i 1,
+                ref "a" `repby` i 1 .=  ref "tmp",
+                assert ((ref "tmp" .== ref "b") .&& (ref "a" `repby` i 0 .== ref "c") .&& (ref "a" `repby` i 1 .== ref "b"))
+            ]
+         
 
 
 verifyProgram :: Stmt -> IO ()
@@ -38,7 +75,7 @@ verifyProgram (Var xs s) = do
   let allVars = S.toList $ collectVars (Var xs s)
       (Var xs' s') = snd $ updateVars allVars M.empty 0 (Var xs s)
       Pre pre = head s'
-  putStrLn $ show allVars
+  putStrLn $ "AllVars:" ++ show allVars
   putStrLn $ show (Var xs' s')
   (invs,w) <- foldWlp True_ (tail s')
 
@@ -68,7 +105,7 @@ wlp (Var vars s) q = do
 wlp (Assign (Name s) e2) q = do
     let assign = assignQ q (s, Nothing) e2
     return $ ([],assign)
-wlp (Assign (Repby (Name s) (Lit i)) e2) q = do
+wlp (Assign (Repby (Name s) i) e2) q = do
     let assign = assignQ q (s,Just i) e2
     return $ ([],assign)
 wlp (Post e) q = do
@@ -94,7 +131,7 @@ wlp (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp _ _ = error "Not supported by our wlp function"
 
 --The assignQ is for now only allowing variable names.
-assignQ :: Expr -> (String, Maybe SBV.SInteger) -> Expr -> Expr
+assignQ :: Expr -> (String, Maybe Expr) -> Expr -> Expr
 assignQ (Lit i)        ref expr = Lit i
 assignQ (Name s)       ref expr | s == fst ref = expr --a is the assigned value.
                              | otherwise = Name s
@@ -108,8 +145,8 @@ assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref e
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Not e1)       ref expr = Not    e1
 assignQ True_          ref expr = True_
-assignQ e1@(Repby var (Lit index)) ref expr  | index == (ME.fromJust $ snd ref) = Repby (assignQ var ref expr) (Lit index)
-                                             | otherwise = e1
+assignQ (Repby (Name s) index) ref expr | index == (MA.fromJust $ snd ref) &&  s == fst ref = expr
+                                              | otherwise = (Repby (Name s) index)
 
 
 name :: Expr -> String
@@ -205,7 +242,6 @@ collectVars (While _ stmts) = foldr (S.union . collectVars) S.empty stmts
 collectVars (If _ stmt1 stmt2) = S.union (collectVars stmt1) (collectVars stmt2)
 collectVars _ = S.empty
 
-list = [(1,"das"),(2,"dasd")]
 implIsValid :: Expr -> Expr -> IO Bool
 implIsValid e1 e2 = do
   validity <- proveImpl e1 e2
