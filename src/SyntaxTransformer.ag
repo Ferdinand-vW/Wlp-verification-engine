@@ -99,6 +99,15 @@ sem Stmt
             expr2.vars = @lhs.vars
             expr1.varMap = @lhs.varMap
             expr2.varMap = @lhs.varMap
+  | Sim     lhs.allVars  = S.union @left.allVars @right.allVars
+            lhs.countSyn = @right.countSyn
+            left.countInh = @lhs.countInh
+            right.countInh = @left.countSyn
+            lhs.fresh =  Var [] $ foldr (\(x,y) z -> (Assign x y) : z ) [] (zip @left.fresh @right.fresh)
+            left.vars = @lhs.vars
+            right.vars = @lhs.vars
+            left.varMap = @lhs.varMap
+            right.varMap = @lhs.varMap
   | Skip    lhs.allVars  = S.empty
             lhs.countSyn = @lhs.countInh
             lhs.fresh = Skip

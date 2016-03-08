@@ -71,6 +71,9 @@ inv pred body = Inv pred body
 (.=) :: Expr -> Expr -> Stmt
 (.=) expr1 expr2 = Assign expr1 expr2
 
+sim :: [Expr] -> [Expr] -> Stmt
+sim e1 e2 = Sim e1 e2
+ 
 ref :: String -> Expr
 ref s = Name s
 

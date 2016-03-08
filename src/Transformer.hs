@@ -76,6 +76,13 @@ swap'' = var ["a", "i", "j", "tmp", "c", "b"]
                 ref "a" `repby` i 1 .=  ref "tmp",
                 assert ((ref "a" `repby` i 0 .== ref "c") .&& (ref "a" `repby` i 1 .== ref "b"))
             ]
+
+simCode :: Stmt
+simCode = var ["a","b"] 
+            [assume ((ref "a" .== ref "b")), 
+                (sim [ref "a",ref "b"] [(ref "a" `minus` i 1),(ref "b" `minus` i 1)]),
+                assert ((ref "a" .== ref "b"))
+            ]
 verifyProgram :: Stmt -> IO ()
 verifyProgram stmt = do
   --let allVars = S.toList $ collectVars (Var xs s)

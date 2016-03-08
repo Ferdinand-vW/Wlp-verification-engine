@@ -1,14 +1,38 @@
 
 
 -- UUAGC 0.9.52.1 (Grammar.ag)
-module Grammar(Stmt(..),Expr(..)) where
 
-import Data.SBV(SInteger)
-
+-- Body --------------------------------------------------------
+type Body = [Stmt]
+-- cata
+sem_Body :: Body ->
+            T_Body
+sem_Body list =
+    (Prelude.foldr sem_Body_Cons sem_Body_Nil (Prelude.map sem_Stmt list))
+-- semantic domain
+type T_Body = ( )
+data Inh_Body = Inh_Body {}
+data Syn_Body = Syn_Body {}
+wrap_Body :: T_Body ->
+             Inh_Body ->
+             Syn_Body
+wrap_Body sem (Inh_Body) =
+    (let ( ) = sem
+     in  (Syn_Body))
+sem_Body_Cons :: T_Stmt ->
+                 T_Body ->
+                 T_Body
+sem_Body_Cons hd_ tl_ =
+    (let
+     in  ( ))
+sem_Body_Nil :: T_Body
+sem_Body_Nil =
+    (let
+     in  ( ))
 -- Expr --------------------------------------------------------
 data Expr = Lit (SInteger)
           | Name (String)
-          | PCall (String) (([Expr]))
+          | PCall (String) (Exprs)
           | ForAll (String) (Expr)
           | Minus (Expr) (Expr)
           | Plus (Expr) (Expr)
@@ -19,7 +43,7 @@ data Expr = Lit (SInteger)
           | Or (Expr) (Expr)
           | Impl (Expr) (Expr)
           | Not (Expr)
-          | Repby (Expr) (Expr) (Expr)
+          | Repby (Expr) (Expr)
           | True_
           deriving ( Eq,Show)
 -- cata
@@ -30,7 +54,7 @@ sem_Expr (Lit _i) =
 sem_Expr (Name _var) =
     (sem_Expr_Name _var)
 sem_Expr (PCall _name _args) =
-    (sem_Expr_PCall _name _args)
+    (sem_Expr_PCall _name (sem_Exprs _args))
 sem_Expr (ForAll _var _expr) =
     (sem_Expr_ForAll _var (sem_Expr _expr))
 sem_Expr (Minus _expr1 _expr2) =
@@ -51,8 +75,8 @@ sem_Expr (Impl _expr1 _expr2) =
     (sem_Expr_Impl (sem_Expr _expr1) (sem_Expr _expr2))
 sem_Expr (Not _expr) =
     (sem_Expr_Not (sem_Expr _expr))
-sem_Expr (Repby _expr1 _expr2 _expr3) =
-    (sem_Expr_Repby (sem_Expr _expr1) (sem_Expr _expr2) (sem_Expr _expr3))
+sem_Expr (Repby _expr1 _expr2) =
+    (sem_Expr_Repby (sem_Expr _expr1) (sem_Expr _expr2))
 sem_Expr (True_) =
     (sem_Expr_True_)
 -- semantic domain
@@ -76,7 +100,7 @@ sem_Expr_Name var_ =
     (let
      in  ( ))
 sem_Expr_PCall :: String ->
-                  ([Expr]) ->
+                  T_Exprs ->
                   T_Expr
 sem_Expr_PCall name_ args_ =
     (let
@@ -142,33 +166,60 @@ sem_Expr_Not expr_ =
      in  ( ))
 sem_Expr_Repby :: T_Expr ->
                   T_Expr ->
-                  T_Expr ->
                   T_Expr
-sem_Expr_Repby expr1_ expr2_ expr3_ =
+sem_Expr_Repby expr1_ expr2_ =
     (let
      in  ( ))
 sem_Expr_True_ :: T_Expr
 sem_Expr_True_ =
     (let
      in  ( ))
+-- Exprs -------------------------------------------------------
+type Exprs = [Expr]
+-- cata
+sem_Exprs :: Exprs ->
+             T_Exprs
+sem_Exprs list =
+    (Prelude.foldr sem_Exprs_Cons sem_Exprs_Nil (Prelude.map sem_Expr list))
+-- semantic domain
+type T_Exprs = ( )
+data Inh_Exprs = Inh_Exprs {}
+data Syn_Exprs = Syn_Exprs {}
+wrap_Exprs :: T_Exprs ->
+              Inh_Exprs ->
+              Syn_Exprs
+wrap_Exprs sem (Inh_Exprs) =
+    (let ( ) = sem
+     in  (Syn_Exprs))
+sem_Exprs_Cons :: T_Expr ->
+                  T_Exprs ->
+                  T_Exprs
+sem_Exprs_Cons hd_ tl_ =
+    (let
+     in  ( ))
+sem_Exprs_Nil :: T_Exprs
+sem_Exprs_Nil =
+    (let
+     in  ( ))
 -- Stmt --------------------------------------------------------
-data Stmt = Var (([String])) (([Stmt]))
-          | Prog (String) (([Expr])) (([Stmt]))
+data Stmt = Var (([String])) (Body)
+          | Prog (String) (([String])) (Body)
           | Pre (Expr)
           | Post (Expr)
           | Inv (Expr) (Stmt)
-          | While (Expr) (([Stmt]))
-          | If (Expr) (([Stmt])) (([Stmt]))
+          | While (Expr) (Body)
+          | If (Expr) (Body) (Body)
           | Assign (Expr) (Expr)
+          | Sim (Exprs) (Exprs)
           | Skip
           deriving ( Eq,Show)
 -- cata
 sem_Stmt :: Stmt ->
             T_Stmt
 sem_Stmt (Var _vars _body) =
-    (sem_Stmt_Var _vars _body)
+    (sem_Stmt_Var _vars (sem_Body _body))
 sem_Stmt (Prog _name _params _body) =
-    (sem_Stmt_Prog _name _params _body)
+    (sem_Stmt_Prog _name _params (sem_Body _body))
 sem_Stmt (Pre _expr) =
     (sem_Stmt_Pre (sem_Expr _expr))
 sem_Stmt (Post _expr) =
@@ -176,11 +227,13 @@ sem_Stmt (Post _expr) =
 sem_Stmt (Inv _expr _stmt) =
     (sem_Stmt_Inv (sem_Expr _expr) (sem_Stmt _stmt))
 sem_Stmt (While _expr _body) =
-    (sem_Stmt_While (sem_Expr _expr) _body)
+    (sem_Stmt_While (sem_Expr _expr) (sem_Body _body))
 sem_Stmt (If _expr _left _right) =
-    (sem_Stmt_If (sem_Expr _expr) _left _right)
+    (sem_Stmt_If (sem_Expr _expr) (sem_Body _left) (sem_Body _right))
 sem_Stmt (Assign _expr1 _expr2) =
     (sem_Stmt_Assign (sem_Expr _expr1) (sem_Expr _expr2))
+sem_Stmt (Sim _left _right) =
+    (sem_Stmt_Sim (sem_Exprs _left) (sem_Exprs _right))
 sem_Stmt (Skip) =
     (sem_Stmt_Skip)
 -- semantic domain
@@ -194,14 +247,14 @@ wrap_Stmt sem (Inh_Stmt) =
     (let ( ) = sem
      in  (Syn_Stmt))
 sem_Stmt_Var :: ([String]) ->
-                ([Stmt]) ->
+                T_Body ->
                 T_Stmt
 sem_Stmt_Var vars_ body_ =
     (let
      in  ( ))
 sem_Stmt_Prog :: String ->
-                 ([Expr]) ->
-                 ([Stmt]) ->
+                 ([String]) ->
+                 T_Body ->
                  T_Stmt
 sem_Stmt_Prog name_ params_ body_ =
     (let
@@ -223,14 +276,14 @@ sem_Stmt_Inv expr_ stmt_ =
     (let
      in  ( ))
 sem_Stmt_While :: T_Expr ->
-                  ([Stmt]) ->
+                  T_Body ->
                   T_Stmt
 sem_Stmt_While expr_ body_ =
     (let
      in  ( ))
 sem_Stmt_If :: T_Expr ->
-               ([Stmt]) ->
-               ([Stmt]) ->
+               T_Body ->
+               T_Body ->
                T_Stmt
 sem_Stmt_If expr_ left_ right_ =
     (let
@@ -239,6 +292,12 @@ sem_Stmt_Assign :: T_Expr ->
                    T_Expr ->
                    T_Stmt
 sem_Stmt_Assign expr1_ expr2_ =
+    (let
+     in  ( ))
+sem_Stmt_Sim :: T_Exprs ->
+                T_Exprs ->
+                T_Stmt
+sem_Stmt_Sim left_ right_ =
     (let
      in  ( ))
 sem_Stmt_Skip :: T_Stmt
