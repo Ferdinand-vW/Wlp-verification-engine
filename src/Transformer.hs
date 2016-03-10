@@ -41,19 +41,14 @@ s2 = var ["x" , "y"]
 s3 = var ["x","y"]
       [
         assume (ref "x" .< i 0),
-        prog "inc" ["x"] ["a"]
-          [
-            ref "a" .= ref "x" `plus` i 1
-          ],
-        pcall "inc" [ref "x"] [ref "x"],
-        assert (ref "x" .< i 0) 
+        ref "x" .= ref "x" `plus` i 1,
+        assert (ref "x" .<= i 0) 
       ]
 
 
 verifyProgram :: Stmt -> IO ()
 verifyProgram stmt = do
-  let stmt' = stmt_fresh stmt
-      (Var xs stmts) = stmt_prog stmt'
+  let (Var xs stmts) = stmt_fresh $ stmt_prog $ stmt_fresh  stmt
       Pre pre = head stmts
   putStrLn $ show (Var xs stmts)
   (invs,w) <- foldWlp True_ (tail stmts)
@@ -109,6 +104,7 @@ wlp (Prog _ _ _ _) q = return ([],q)
 wlp (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp _ _ = error "Not supported by our wlp function"
 
+
 --The assignQ is for now only allowing variable names.
 assignQ :: Expr -> (String, Maybe SBV.SInteger) -> Expr -> Expr
 assignQ (Lit i)        ref expr = Lit i
@@ -132,93 +128,6 @@ name :: Expr -> String
 name (Name s) = s
 name _ = error "Not yet allowed"
 
-{-freshVarsStmt :: [String] -> M.Map String String -> Int -> Stmt -> (Int,Stmt)
-freshVarsStmt vars newvars n Skip = (n,Skip)
-freshVarsStmt vars newvars n (Assign e1 e2) = 
-  let (n',e1') = freshVarsExpr vars newvars n e1
-      (n'',e2') = freshVarsExpr vars newvars n' e2
-  in  (n'', Assign e1' e2')
-freshVarsStmt vars newvars n (Pre e) = 
-  let (n',e') = freshVarsExpr vars newvars n e
-  in (n',Pre e')
-freshVarsStmt vars newvars n (Post e) = 
-  let (n',e') = freshVarsExpr vars newvars n e
-  in (n', Post e')
-freshVarsStmt vars newvars n (If g s1 s2) = 
-  let (n',g') = freshVarsExpr vars newvars n g
-      (n'',s1') = freshVarsStmt vars newvars n' s1
-      (n''',s2') = freshVarsStmt vars newvars n'' s2
-  in  (n''',If g' s1' s2')
-freshVarsStmt vars newvars n (Inv i (While g s)) = 
-  let (n',i') = freshVarsExpr vars newvars n i
-      (n'',g') = freshVarsExpr vars newvars n' g
-      (n''', s') = foldr (\x (k,ys) -> let (k', st) = freshVarsStmt vars newvars k x
-                                       in (k',st:ys)) (n'',[]) s
-  in  (n''',Inv i' (While g' s'))
-freshVarsStmt vars newvars n (Var vars' stmts) = 
-  let dupVars = L.intersect vars vars'
-      freshVars = map (++ show n) dupVars
-      freshVarsMap = M.fromList $ zip dupVars freshVars
-      remVars = vars' L.\\ dupVars
-      (n',stmts') = foldr (\x (i,y) -> let (i',x') = freshVarsStmt vars (M.union freshVarsMap newvars) i x
-                                       in (i',x':y)) (n+1,[]) stmts
-  in (n',Var (L.union remVars freshVars) stmts')
-
-freshVarsExpr :: [String] -> M.Map String String -> Int -> Expr -> (Int,Expr)
-freshVarsExpr vars newvars n (Lit i) = (n,Lit i)
-freshVarsExpr vars newvars n (Name s) = 
-  case M.lookup s newvars of
-    Nothing -> (n,Name s)
-    Just s' -> (n,Name s')
-updateVarInExpr vars newvars n (Repby var index) =
-  let (n', var') = updateVarInExpr vars newvars n var
-  in (n', Repby var' index)
-  in  (n'', Plus e1' e2')
-freshVarsExpr vars newvars n (Minus e1 e2) = 
-  let (n', e1') = freshVarsExpr vars newvars n e1
-      (n'',e2') = freshVarsExpr vars newvars n' e2
-  in  (n'', Minus e1' e2')
-freshVarsExpr vars newvars n (Equal e1 e2) = 
-  let (n', e1') = freshVarsExpr vars newvars n e1
-      (n'',e2') = freshVarsExpr vars newvars n' e2
-  in  (n'', Equal e1' e2')
-freshVarsExpr vars newvars n (Lower e1 e2) = 
-  let (n', e1') = freshVarsExpr vars newvars n e1
-      (n'', e2') = freshVarsExpr vars newvars n' e2
-  in  (n'', Lower e1' e2')
-freshVarsExpr vars newvars n (LowerE e1 e2) = 
-  let (n', e1') = freshVarsExpr vars newvars n e1
-      (n'', e2') = freshVarsExpr vars newvars n' e2
-  in  (n'', LowerE e1' e2')
-freshVarsExpr vars newvars n (And e1 e2) = 
-  let (n', e1') = freshVarsExpr vars newvars n e1
-      (n'', e2') = freshVarsExpr vars newvars n' e2
-  in  (n'', And e1' e2')
-freshVarsExpr vars newvars n (Or e1 e2)     = 
-  let (n', e1') = freshVarsExpr vars newvars n e1
-      (n'', e2') = freshVarsExpr vars newvars n' e2
-  in  (n'', Or e1' e2')
-freshVarsExpr vars newvars n (Not e) = 
-  let (n', e') = freshVarsExpr vars newvars n e
-  in (n', Not e')
-freshVarsExpr vars newvars n (ForAll s e)   =
-  case L.find (==s) vars of
-    Nothing -> let varEntry = M.insert s s newvars
-                   (n', e') = freshVarsExpr (s : vars) varEntry n e
-               in (n',ForAll s e')
-    Just s' -> let newVar = s' ++ show n
-                   freshVars = M.adjust (\_ -> newVar) s' newvars
-                   (n', e') = freshVarsExpr vars freshVars (n + 1) e
-               in (n',ForAll newVar e')
-
-collectVars :: Stmt -> S.Set String
-collectVars (Var xs stmts) = S.union (S.fromList xs) (foldr (S.union . collectVars) S.empty stmts)
-collectVars (Inv _ stmt) = collectVars stmt
-collectVars (While _ stmts) = foldr (S.union . collectVars) S.empty stmts
-collectVars (If _ stmt1 stmt2) = S.union (collectVars stmt1) (collectVars stmt2)
-collectVars _ = S.empty-}
-
-list = [(1,"das"),(2,"dasd")]
 implIsValid :: Expr -> Expr -> IO Bool
 implIsValid e1 e2 = do
   validity <- proveImpl e1 e2
