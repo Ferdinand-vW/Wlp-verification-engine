@@ -1,6 +1,6 @@
 module {SyntaxTransformer}
 {
-Stmt(..), Expr(..), stmt_fresh, stmt_prog
+Stmt(..), Expr(..), ProgramInfo(..), stmt_ProgramInfo
 }
 {
 import qualified Data.Map as M
@@ -14,36 +14,82 @@ import Data.SBV(SInteger)
 include "Grammar.ag"
 
 {
-stmt_fresh :: Stmt -> Stmt
-stmt_fresh stmt = fresh_Syn_Top $ wrap_Top (sem_Top (Top stmt)) Inh_Top
-stmt_prog :: Stmt -> Stmt
-stmt_prog stmt = prog_Syn_Top $ wrap_Top (sem_Top (Top stmt)) Inh_Top
+stmt_ProgramInfo :: Stmt -> ProgramInfo
+stmt_ProgramInfo stmt = pInfo_Syn_Top $ wrap_Top (sem_Top (Top stmt)) Inh_Top
 }
 
 data Top | Top stmt :: Stmt
 
+data ProgramInfo | ProgramInfo varMap :: {S.Set String} progMap :: {M.Map String ([String],[String],Body)}
+
 attr Top
-  syn fresh :: Stmt
-  syn prog :: Stmt
+  syn pInfo :: ProgramInfo
 
 sem Top
-  | Top lhs.fresh = @stmt.fresh
-        stmt.varMap = M.empty
-        stmt.vars   = S.toList @stmt.allVars
-        stmt.countInh = 0
-        stmt.allProgs = @stmt.findProgs
-        lhs.prog = @stmt.prog
+  | Top lhs.pInfo = ProgramInfo @stmt.allVars @stmt.allProgs
 
 attr Body Stmt Exprs Expr
   syn allVars :: {S.Set String}
-  syn fresh :: self
-  inh countInh :: Int
-  syn countSyn :: Int
-  inh vars :: {[String]}
-  inh varMap :: {M.Map String String}
+  syn copy :: self
+
+attr Body Stmt
+  syn allProgs :: {M.Map String ([String],[String],Body)}
 
 sem Stmt
+  | Var     lhs.allProgs = @body.allProgs
+            lhs.allVars = S.union (S.fromList @vars) @body.allVars
+  | Prog    lhs.allProgs = M.singleton @name (@params, @results, @body.copy)
+            lhs.allVars = S.union (S.fromList (@params ++ @results)) @body.allVars
+  | PCall   lhs.allProgs = M.empty
+            lhs.allVars = S.union @args.allVars @res.allVars
+  | Pre     lhs.allProgs = M.empty
+            lhs.allVars = @expr.allVars
+  | Post    lhs.allProgs = M.empty
+            lhs.allVars = @expr.allVars
+  | Inv     lhs.allProgs = M.empty
+            lhs.allVars = S.union @expr.allVars @stmt.allVars
+  | While   lhs.allProgs = M.empty
+            lhs.allVars = S.union @expr.allVars @body.allVars
+  | If      lhs.allProgs = M.empty
+            lhs.allVars = S.union (S.union @expr.allVars @left.allVars) @right.allVars
+  | Assign  lhs.allProgs = M.empty
+            lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Sim     lhs.allProgs = M.empty
+            lhs.allVars = S.union @left.allVars @right.allVars
+  | Skip    lhs.allProgs = M.empty
+            lhs.allVars = S.empty
+
+sem Body
+  | Cons lhs.allProgs = M.union @hd.allProgs @tl.allProgs
+         lhs.allVars = S.union @hd.allVars @tl.allVars
+  | Nil  lhs.allProgs = M.empty
+         lhs.allVars = S.empty
+
+sem Expr
+  | Lit lhs.allVars = S.empty
+  | Name lhs.allVars = S.singleton @var
+  | ForAll lhs.allVars = S.union (S.singleton @var) @expr.allVars
+  | Minus lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Plus lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Equal lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Lower lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | LowerE lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | And lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Or lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Impl lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Repby lhs.allVars = S.union @expr1.allVars @expr2.allVars
+  | Not lhs.allVars = @expr.allVars
+  | True_ lhs.allVars = S.empty
+
+sem Exprs
+  | Cons lhs.allVars = S.union @hd.allVars @tl.allVars
+  | Nil  lhs.allVars = S.empty
+
+
+{-sem Stmt
   | Var     lhs.allVars       = S.union (S.fromList @vars) @body.allVars
+            lhs.findProgs     = @body.findProgs
+            body.allProgs     = @lhs.allProgs
             lhs.countSyn      = @body.countSyn
             body.countInh     = @lhs.countInh + 1
             lhs.fresh         = Var (L.union @loc.remVars @loc.freshVars) @body.fresh
@@ -54,10 +100,12 @@ sem Stmt
             loc.freshVarsMap  = M.fromList $ zip @loc.dupVars @loc.freshVars
             loc.remVars       = @vars L.\\ @loc.dupVars
   | Prog    lhs.allVars  = S.union (S.union (S.fromList @params) @body.allVars) (S.fromList @results)
+            lhs.findProgs = M.singleton @name (@params @res, @body.copy)
+            body.allProgs = M.empty
             lhs.countSyn = @body.countSyn
-            body.countInh = @lhs.countInh + 1
+            body.countInh = @lhs.countInh
             body.vars = @lhs.vars
-            body.varMap = M.union (M.union @loc.freshVarsMap @lhs.varMap) @loc.freshVarsRMap
+            body.varMap = M.union @loc.freshVarsRMap (M.union @loc.freshVarsMap @lhs.varMap) 
             lhs.fresh = Prog @name (L.union @loc.remVars @loc.freshVars) (L.union @loc.remVarsR @loc.freshVarsR) @body.fresh
             loc.dupVars = L.intersect @lhs.vars @params
             loc.dupVarsR = L.intersect @lhs.vars @results
@@ -68,20 +116,51 @@ sem Stmt
             loc.remVars = @params L.\\ @loc.dupVars
             loc.remVarsR = @results L.\\ @loc.dupVarsR
   | PCall   lhs.allVars = S.empty
+            lhs.allProgs = M.empty
             lhs.fresh = PCall @name @args.fresh @res.fresh
             lhs.countSyn = @args.countSyn
             args.countInh = @lhs.countInh
+
+            loc.dupVars = L.intersect @lhs.vars @loc.prms
+            loc.dupVarsR = L.intersect @lhs.vars @loc.res
+            loc.freshVars = map (++ show @lhs.countInh) @loc.dupVars
+            loc.freshVarsR = map (++ show @lhs.countInh) @loc.dupVarsR
+            loc.freshVarsMap = M.fromList $ zip @loc.dupVars @loc.freshVars
+            loc.freshVarsRMap = M.fromList $ zip @loc.dupVarsR @loc.freshVarsR
+            loc.remVars = @loc.prms L.\\ @loc.dupVars
+            loc.remVarsR = @loc.res L.\\ @loc.dupVarsR
+
+            lhs.prog = Var (@loc.prms ++ @loc.res) $
+                          [Assign (Name $ head @loc.prms) (head @args.prog)]
+                            ++
+                          @loc.body
+                            ++
+                          [Assign (head @res.prog) (Name $ head @loc.res)]
+            loc.prms = fst3 @loc.prog
+            loc.res = snd3 @loc.prog
+            loc.body = thrd @loc.prog
+            loc.prog = fromJust $ M.lookup @name @lhs.allProgs
+            lhs.findProgs = M.empty
+            args.progParams = @lhs.progParams
+            res.progParams = @lhs.progParams
+
+
+
   | Pre     lhs.allVars  = S.empty
+            lhs.findProgs = M.empty
             lhs.countSyn = @lhs.countInh
             lhs.fresh = Pre @expr.fresh
             expr.vars = @lhs.vars
             expr.varMap = @lhs.varMap
   | Post    lhs.allVars  = S.empty
+            lhs.findProgs = M.empty
             lhs.countSyn = @lhs.countInh
             lhs.fresh = Post @expr.fresh
             expr.vars = @lhs.vars
             expr.varMap = @lhs.varMap
   | Inv     lhs.allVars  = @stmt.allVars
+            lhs.findProgs = M.empty
+            stmt.allProgs = @lhs.allProgs
             lhs.countSyn = @stmt.countSyn
             lhs.fresh = Inv @expr.fresh @stmt.fresh
             stmt.countInh = @lhs.countInh
@@ -90,6 +169,8 @@ sem Stmt
             expr.vars = @lhs.vars
             expr.varMap = @lhs.varMap
   | While   lhs.allVars  = @body.allVars
+            lhs.findProgs = M.empty
+            body.allProgs = @lhs.allProgs
             lhs.countSyn = @body.countSyn
             lhs.fresh = While @expr.fresh @body.fresh
             body.countInh = @lhs.countInh
@@ -98,6 +179,9 @@ sem Stmt
             expr.vars = @lhs.vars
             expr.varMap = @lhs.varMap
   | If      lhs.allVars  = S.union @left.allVars @right.allVars
+            lhs.findProgs = M.empty
+            left.allProgs = @lhs.allProgs
+            right.allProgs = @lhs.allProgs
             lhs.countSyn = @right.countSyn
             left.countInh = @lhs.countInh
             right.countInh = @left.countSyn
@@ -109,18 +193,33 @@ sem Stmt
             expr.vars = @lhs.vars
             expr.varMap = @lhs.varMap
   | Assign  lhs.allVars  = S.empty
+            lhs.findProgs = M.empty
             lhs.countSyn = @lhs.countInh
             lhs.fresh = Assign @expr1.fresh @expr2.fresh
             expr1.vars = @lhs.vars
             expr2.vars = @lhs.vars
             expr1.varMap = @lhs.varMap
             expr2.varMap = @lhs.varMap
+  | Sim     lhs.allVars  = S.union @left.allVars @right.allVars
+            lhs.findProgs = M.empty
+            lhs.countSyn = @right.countSyn
+            left.countInh = @lhs.countInh
+            right.countInh = @left.countSyn
+            lhs.fresh =  Var [] $ foldr (\(x,y) z -> (Assign x y) : z ) [] (zip @left.fresh @right.fresh)
+            left.vars = @lhs.vars
+            right.vars = @lhs.vars
+            left.varMap = @lhs.varMap
+            right.varMap = @lhs.varMap
   | Skip    lhs.allVars  = S.empty
+            lhs.findProgs = M.empty
             lhs.countSyn = @lhs.countInh
             lhs.fresh = Skip
 
 sem Body
   | Cons lhs.allVars = S.union @hd.allVars @tl.allVars
+         lhs.findProgs = M.union @hd.findProgs @tl.findProgs
+         hd.allProgs = @lhs.allProgs
+         tl.allProgs = @lhs.allProgs
          lhs.fresh   = @hd.fresh : @tl.fresh
          lhs.countSyn = @tl.countSyn
          hd.countInh = @lhs.countInh
@@ -130,6 +229,7 @@ sem Body
          hd.varMap = @lhs.varMap
          tl.varMap = @lhs.varMap
   | Nil  lhs.allVars = S.empty
+         lhs.findProgs = M.empty
          lhs.fresh   = []
          lhs.countSyn = @lhs.countInh
 
@@ -262,14 +362,13 @@ sem Expr
 
 attr Body Stmt Exprs Expr
   syn prog :: self
-
-attr Body Stmt
-  syn findProgs :: {M.Map String ([String],[String],Body)}
-  inh allProgs :: {M.Map String ([String],[String],Body)}
+  inh progParams :: {M.Map String String}
 
 sem Body
   | Cons  lhs.prog = @hd.prog : @tl.prog
           lhs.findProgs = M.union @hd.findProgs @tl.findProgs
+          hd.progParams = @lhs.progParams
+          tl.progParams = @lhs.progParams
           hd.allProgs = @lhs.allProgs
           tl.allProgs = @lhs.allProgs
   | Nil   lhs.prog = []
@@ -279,12 +378,16 @@ sem Stmt
   | Var     lhs.prog = Var @vars @body.prog
             lhs.findProgs = @body.findProgs
             body.allProgs = @lhs.allProgs
-  | Prog    lhs.prog = Prog @name @params @results @body.prog
+            body.progParams = @lhs.progParams
+  | Prog    lhs.prog = Prog @name @loc.params @loc.results @body.prog
+            loc.params = map (++ "_") @params
+            loc.results = map (++ "_") @results
+            body.progParams = M.fromList $ zip (@params ++ @results) (@loc.params ++ @loc.results)
             lhs.findProgs = M.union @loc.findProgs @body.findProgs
-            loc.findProgs = M.singleton @name (@params,@results,@body.prog)
+            loc.findProgs = M.singleton @name (@loc.params,@loc.results,@body.prog)
             body.allProgs = @lhs.allProgs
   | PCall   lhs.prog = Var (@loc.prms ++ @loc.res) $
-                          [Assign (Name $ head @prms) (head @args.prog)]
+                          [Assign (Name $ head @loc.prms) (head @args.prog)]
                             ++
                           @loc.body
                             ++
@@ -294,20 +397,73 @@ sem Stmt
             loc.body = thrd @loc.prog
             loc.prog = fromJust $ M.lookup @name @lhs.allProgs
             lhs.findProgs = M.empty
+            args.progParams = @lhs.progParams
+            res.progParams = @lhs.progParams
   | Pre     lhs.prog = Pre @expr.prog
             lhs.findProgs = M.empty
   | Post    lhs.prog = Post @expr.prog
             lhs.findProgs = M.empty
   | Inv     lhs.prog = Inv @expr.prog @stmt.prog
             lhs.findProgs = @stmt.findProgs
+            expr.progParams = @lhs.progParams
+            stmt.progParams = @lhs.progParams
   | While   lhs.prog = While @expr.prog @body.prog
             lhs.findProgs = @body.findProgs
+            expr.progParams = @lhs.progParams
+            body.progParams = @lhs.progParams
   | If      lhs.prog = If @expr.prog @left.prog @right.prog
             lhs.findProgs = M.union @left.findProgs @right.findProgs
+            expr.progParams = @lhs.progParams
+            left.progParams = @lhs.progParams
+            right.progParams = @lhs.progParams
   | Assign  lhs.prog = Assign @expr1.prog @expr2.prog
             lhs.findProgs = M.empty
+            expr1.progParams = @lhs.progParams
+            expr2.progParams = @lhs.progParams
   | Skip    lhs.prog = Skip
             lhs.findProgs = M.empty
+
+sem Exprs
+  | Cons lhs.prog = @hd.prog : @tl.prog
+         hd.progParams = @lhs.progParams
+         tl.progParams = @lhs.progParams
+  | Nil lhs.prog = []
+
+sem Expr
+  | Lit lhs.prog = Lit @i
+  | Name lhs.prog = case M.lookup @var @lhs.progParams of
+                      Nothing -> Name @var
+                      Just s -> Name s
+  | Minus lhs.prog = Minus @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | Plus  lhs.prog = Plus @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | Equal   lhs.prog = Equal @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | Lower   lhs.prog = Lower @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | LowerE lhs.prog = LowerE @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | And lhs.prog = And @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | Or lhs.prog = Or @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | Impl lhs.prog = Impl @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | Repby lhs.prog = Repby @expr1.prog @expr2.prog
+          expr1.progParams = @lhs.progParams
+          expr2.progParams = @lhs.progParams
+  | Not   lhs.prog = Not @expr.prog
+          expr.progParams = @lhs.progParams
+  | True_ lhs.prog = True_
 
 {
 
@@ -320,3 +476,4 @@ snd3 (a,b,c) = b
 thrd :: (a,b,c) -> c
 thrd (a,b,c) = c
 }
+-}

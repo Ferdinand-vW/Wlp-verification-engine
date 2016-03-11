@@ -11,6 +11,7 @@ data Stmt
   | While   expr :: Expr      body :: Body
   | If      expr :: Expr      left :: Body    right :: Body
   | Assign  expr1 :: Expr     expr2 :: Expr
+  | Sim     left :: Exprs      right :: Exprs
   | Skip
 
 data Expr
