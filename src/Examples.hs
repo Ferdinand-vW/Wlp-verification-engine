@@ -2,6 +2,7 @@ module Examples where
 
 import SyntaxTransformer
 import GCL
+import Transformer
 
 s1 :: Stmt
 s1 = var ["x" , "y","n"] 
@@ -85,7 +86,29 @@ swap'' = var ["a", "i", "j", "tmp", "c", "b"]
 
 simCode :: Stmt
 simCode = var ["a","b"] 
-            [assume ((ref "a" .== ref "b")), 
-                (sim [ref "a",ref "b"] [(ref "a" `minus` i 1),(ref "b" `minus` i 1)]),
+            [assume ((ref "a" .== ref "b")),
+                ref "b" .= i 6,
+                (sim [ref "a",ref "b"] [ref "b" `minus` i 1,i 5]),
+                (sim [ref "a",ref "b"] [ref "a" `minus` i 1,i 4]),
                 assert ((ref "a" .== ref "b"))
             ]
+
+
+
+simArray :: Stmt
+simArray = var ["a","b"] 
+            [assume ((ref "a" .== ref "b")),
+                ref "b" .= i 6,
+                (sim [ref "a" `repby` i 0,ref "b"] [ref "b" `minus` i 1,i 5]),
+                (sim [ref "a" `repby` i 0,ref "b"] [ref "a" `repby` i 0 `minus` i 1,i 4]),
+                assert ((ref "a" `repby` i 0 .== ref "b"))
+            ]
+
+forallExample :: Stmt
+forallExample = var ["j","i","N","min","a"]
+                  [
+                    assume (forall "x" (ref "j" .< ref "x" .&& ref "x" .< ref "i" .&& ref "i" .< ref "N" .==>
+                      (ref "min" .< ref "a" `repby` ref "x"))),
+                    assert (forall "x" (ref "j" .< ref "x" .&& ref "x" .< ref "i" .&& ref "i" .< ref "N" .==>
+                      (ref "min" .< ref "a" `repby` ref "x")))
+                  ]
