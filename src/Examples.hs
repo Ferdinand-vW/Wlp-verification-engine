@@ -2,6 +2,7 @@ module Examples where
 
 import SyntaxTransformer
 import GCL
+import Transformer
 
 s1 :: Stmt
 s1 = var ["x","y","n"] 
@@ -96,8 +97,10 @@ swap'' = var ["a", "i", "j", "tmp", "c", "b"]
 
 simCode :: Stmt
 simCode = var ["a","b"] 
-            [assume ((ref "a" .== ref "b")), 
-                (sim [ref "a",ref "b"] [(ref "a" `minus` i 1),(ref "b" `minus` i 1)]),
+            [assume ((ref "a" .== ref "b")),
+                ref "b" .= i 6,
+                (sim [ref "a",ref "b"] [ref "b" `minus` i 1,i 5]),
+                (sim [ref "a",ref "b"] [ref "a" `minus` i 1,i 4]),
                 assert ((ref "a" .== ref "b"))
             ]
 
@@ -110,6 +113,16 @@ forallExample = var ["j","i","N","min","a"]
                       (ref "min" .< ref "a")))
                   ]
 
+simArray :: Stmt
+simArray = var ["a","b"] 
+            [assume ((ref "a" .== ref "b")),
+                ref "b" .= i 6,
+                (sim [ref "a" `repby` i 0,ref "b"] [ref "b" `minus` i 1,i 5]),
+                (sim [ref "a" `repby` i 0,ref "b"] [ref "a" `repby` i 0 `minus` i 1,i 4]),
+             
+                   assert ((ref "a" `repby` i 0 .== ref "b"))            ]
+
+                  
 minind :: Stmt
 minind = prog "minind" ["a","i","N"] ["r"]
             [
@@ -121,6 +134,8 @@ minind = prog "minind" ["a","i","N"] ["r"]
                 ref "r" .= ref "i",
                 ref "min" .= ref "a" `repby` ref "i",
                 inv (forall "x" (ref "j" .< ref "N" .&& ref "j" .<= ref "i" .&& ref "j" .<= ref "r" .&&
+
+
                                 (ref "j" .== ref "i" .==> ref "r" .== ref "i") .&&
                                 (ref "j" .< ref "i" .==> ref "r" .< ref "i") .&&
                                 ref "min" .== ref "a" `repby` ref "r" .&&

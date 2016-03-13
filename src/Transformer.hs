@@ -56,6 +56,23 @@ mkFreshStmt n varMap progMap (PCall name args vars) =
             map (\(x,y) -> Assign x (Name y)) (zip expr2 allResv)
           )
   in (n3,transformed)
+mkFreshStmt n varMap progMap (Sim vars1 vars2) =
+  let (n1,expr1) = mkFreshExprs n varMap vars1
+      (n2,expr2) = mkFreshExprs n1 varMap vars2
+      varsList = foldr (\x y -> name x : y) [] vars1
+      varTypes = foldr (\x y -> varType x : y) [] vars1
+      dupVars = filter (\x -> M.member x varMap) varsList
+      oldVars = [fromJust $ M.lookup x varMap | x <- dupVars]
+      newVars = map (++ show n) dupVars
+      newVarsLeft = M.fromList $ map (\(x,y) -> (x ++ show n,y)) varTypes
+      newVarTypesRight = [(fromJust $ M.lookup x varMap,y) | (x,y) <- varTypes , x `M.member` varMap]
+      freshMap = M.fromList $ zip oldVars newVars
+      modRight = foldr (\x y -> (modifyExpr x varMap freshMap) : y) [] vars2
+      headStmp = foldr (\(x,y) z -> (Assign (correctType x (fromJust $ M.lookup x newVarsLeft)) 
+                                            (correctType y $ fromJust $ M.lookup y (M.fromList newVarTypesRight))) : z) [] $ zip newVars oldVars
+      bodyStmp = foldr (\(x,y) z -> (Assign x y): z ) [] $ zip expr1 modRight
+      transformed = Var [] $ headStmp ++ bodyStmp    
+  in (n2,transformed)
 mkFreshStmt n varMap progMap (Pre expr) =
   let (n1,expr1) = mkFreshExpr n varMap expr
   in (n1,Pre expr1)
@@ -79,10 +96,6 @@ mkFreshStmt n varMap progMap (Assign left right) =
   let (n1,expr1) = mkFreshExpr n varMap left
       (n2,expr2) = mkFreshExpr n1 varMap right
   in (n2,Assign expr1 expr2)
-mkFreshStmt n varMap progMap (Sim left right) = 
-  let (n1,stmts1) = mkFreshExprs n varMap left
-      (n2,stmts2) = mkFreshExprs n1 varMap right
-  in (n2,Sim stmts1 stmts2)
 mkFreshStmt n varMap progMap stmt = (n,stmt)
 
 mkFreshExprs :: Int -> M.Map String String -> [Expr] -> (Int,[Expr])
@@ -144,3 +157,34 @@ mkFreshExpr n varMap (Not expr) =
   let (n1,expr1) = mkFreshExpr n varMap expr
   in (n1, Not expr1)
 mkFreshExpr n varMap expr = (n,expr)
+
+name :: Expr -> String
+name (Name s) = s
+name (Repby (Name s) _) = s
+
+varType :: Expr -> (String,Maybe Expr)
+varType (Name s) = (s, Nothing)
+varType (Repby (Name s) index) = (s, Just index)
+
+modifyExpr :: Expr -> M.Map String String -> M.Map String String -> Expr
+modifyExpr (Lit i)        old new = Lit i
+modifyExpr (Name s)       old new = Name $ newVar s old new
+modifyExpr (ForAll s e)   old new = ForAll (newVar s old new) $ modifyExpr e old new
+modifyExpr (Minus e1 e2)  old new = Minus  (modifyExpr e1 old new) (modifyExpr e2 old new)
+modifyExpr (Plus e1 e2)   old new = Plus   (modifyExpr e1 old new) (modifyExpr e2 old new)
+modifyExpr (Equal e1 e2)  old new = Equal  (modifyExpr e1 old new) (modifyExpr e2 old new)
+modifyExpr (Lower e1 e2)  old new = Lower  (modifyExpr e1 old new) (modifyExpr e2 old new)
+modifyExpr (LowerE e1 e2) old new = LowerE (modifyExpr e1 old new) (modifyExpr e2 old new)
+modifyExpr (And e1 e2)    old new = And    (modifyExpr e1 old new) (modifyExpr e2 old new)
+modifyExpr (Or e1 e2)     old new = Or     (modifyExpr e1 old new) (modifyExpr e2 old new)
+modifyExpr (Not e1)       old new = Not    e1
+modifyExpr True_          old new = True_
+modifyExpr (Repby (Name s) index) old new = Repby (Name $ newVar s old new) index
+
+newVar :: String -> M.Map String String -> M.Map String String -> String
+newVar s old new | M.member s old = fromJust $ M.lookup (fromJust $ M.lookup s old) new
+                 | otherwise = s
+
+correctType :: String -> Maybe Expr -> Expr
+correctType s Nothing = Name s
+correctType s (Just i) = Repby (Name s) i
