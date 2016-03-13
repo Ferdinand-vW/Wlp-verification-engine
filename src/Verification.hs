@@ -13,6 +13,7 @@ import GCL
 import Prover
 import Control.Monad
 
+import PrettyPrint
 import Examples
 
 verifyProgram :: Stmt -> IO ()
@@ -27,11 +28,13 @@ verifyProgram stmt = do
   when (not $ null invs) $ do
     putStrLn "------------------------------"
     putStrLn "Invariants are not valid:"
-    mapM_ (putStrLn . show) invs
+    mapM_ (\x -> do
+        putStrLn $ pp x
+        putStrLn "") invs
 
   putStrLn "-----------------------------------"
-  putStrLn $ show pre
-  putStrLn $ show w
+  putStrLn $ pp pre
+  putStrLn $ pp w
   proveImpl pre w >>= print
       
 
@@ -89,10 +92,12 @@ assignQ (Lower e1 e2)  ref expr = Lower  (assignQ e1 ref expr) (assignQ e2 ref e
 assignQ (LowerE e1 e2) ref expr = LowerE (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
+assignQ (Impl e1 e2)   ref expr = Impl   (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Not e1)       ref expr = Not    e1
 assignQ True_          ref expr = True_
 assignQ (Repby (Name s) index) ref expr | snd ref /= Nothing && index == (MA.fromJust $ snd ref) &&  s == fst ref = expr
-                                              | otherwise = (Repby (Name s) index)
+                                        | otherwise = (Repby (Name s) (assignQ index ref expr))
+assignQ expr _ _ = error $ show expr
 
 implIsValid :: Expr -> Expr -> IO Bool
 implIsValid e1 e2 = do

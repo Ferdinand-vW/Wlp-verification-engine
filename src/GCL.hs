@@ -4,55 +4,6 @@ import SyntaxTransformer
 
 import Data.SBV(SInteger)
 
-{-data Stmt = Var [String] [Stmt]
-  | Prog String [Expr] [Stmt]
-  | Pre Expr
-  | Post Expr
-  | Inv Expr Stmt
-  | While Expr [Stmt]
-  | If Expr Stmt Stmt
-  | Assign Expr Expr
-  | Skip
-  deriving (Eq,Show)
-
-data Expr = Lit SInteger
-  | Name String
-  | PCall String [Expr]
-  | ForAll String Expr
-  | Minus Expr Expr
-  | Plus Expr Expr
-  | Equal Expr Expr
-  | Lower Expr Expr
-  | LowerE Expr Expr
-  | And Expr Expr
-  | Or Expr Expr
-  | Not Expr
-  | Impl Expr Expr
-  | True_
-  Repby Expr Expr
-  deriving (Show,Eq)-}
-
-
-
-data AsgTarget = AsgTarget String [Expr]
-{-instance Show Expr where
-
-
-
-  show (Lit s)        = show s
-  show (Name s)       = s
-  show (ForAll s e)   = "Forall " ++ s ++ " : " ++ show e
-  show (Minus e1 e2)  = show e1 ++ " - " ++ show e2
-  show (Plus e1 e2)   = show e1 ++ " + " ++ show e2
-  show (Equal e1 e2)  = show e1 ++ " == " ++ show e2
-  show (Lower e1 e2)  = show e1 ++ " < " ++ show e2
-  show (LowerE e1 e2) = show e1 ++ " <= " ++ show e2
-  show (And e1 e2)    = show e1 ++ " && " ++ show e2 
-  show (Or e1 e2)     = show e1 ++ " || " ++ show e2 
-  show (Not e1)       = "Not (" ++ show e1 ++ ")"
-  show (Impl e1 e2)   = show e1 ++ " ==> "  ++ show e2
-  show True_          = "True"-}
-
 var :: [String] -> [Stmt] -> Stmt
 var vars body = Var vars body
 
