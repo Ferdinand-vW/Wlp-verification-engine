@@ -157,29 +157,30 @@ minind = prog "minind" ["a","i","N"] ["r"]
                                    (ref "a" `repby` ref "r" .<= ref "a" `repby` ref "x")))
             ]
 
-{-sort :: Stmt
+sort :: Stmt
 sort = var ["a","a'","i","N"]
         [
+          assume (ref "i" .< ref "N"),
           minind,
+          swap,
           ref "i" .= i 0,
-          inv () 
-            (while ref "i" .< ref "N" `minus` i 1
-              [
-                var ["m"]
-                  [
-                    pcall "minind" [ref "a", ref "i" `plus` 1, ref "N"] [ref "m"],
-                    if_then_else ref ("a" `repby` ref "m" .< ref "a" `repby` ref "i")
-                      [
-                        pcall "swap" [ref "a", ref "i", ref "m"] [ref "a"]
-                      ]
-                      [
-                        Skip
-                      ],
-                    ref "i" .= ref "i" `plus` i 1
-                  ]
-                
-              ])
-
-          pcall "minind" [] []
-          ref "a'" .= ref "a"
-        ]-}
+           inv (forall "x" (forall "y" ((i 0 .<= ref "x" .&& ref "x" .<= ref "y" .&& ref "y" .<= ref "i") 
+            .==> ref "a" `repby` ref "x" .<= ref "a" `repby` ref "y")))
+            (while (ref "i" .< ref "N" `minus` i 1)
+                          [
+                            var ["m"]
+                              [
+                                pcall "minind" [ref "a", ref "i" `plus` i 1, ref "N"] [ref "m"],
+                                if_then_else (ref "a" `repby` ref "m" .< ref "a" `repby` ref "i")
+                                  [
+                                    pcall "swap" [ref "a", ref "i", ref "m"] [ref "a"]
+                                  ]
+                                  [
+                                    Skip
+                                  ],
+                                ref "i" .= ref "i" `plus` i 1
+                              ]
+                            
+                          ])
+          --ref "a'" .= ref "a"
+        ]

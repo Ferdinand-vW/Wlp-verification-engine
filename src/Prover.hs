@@ -157,6 +157,9 @@ mkSymInt vars arr (Lit i) = return i
 mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
 mkSymInt vars arr (Repby (Name s) (Lit index)) = return $ readArray (fromJust $ M.lookup s arr) index
 mkSymInt vars arr (Repby (Name s) (Name index))  = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
+mkSymInt vars arr (Repby (Name s) index) = do
+                  index' <- mkSymInt vars arr index 
+                  return $ readArray (fromJust $ M.lookup s arr) index'
 mkSymInt vars arr expr = error $ show expr
 
 mkInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> (SInteger -> SInteger -> SInteger) -> Expr -> Expr -> Symbolic SInteger
