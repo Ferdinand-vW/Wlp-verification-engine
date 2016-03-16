@@ -57,7 +57,6 @@ infixr 6 `plus`
 infixr 4 .==
 infixr 4 .< 
 infixr 4 .<=
-infixr 4 .!
 infixr 3 .&& 
 infixr 2 .|| 
 infixr 1 .= 
@@ -72,8 +71,8 @@ infixr 0 .==>
 (.||) :: Expr -> Expr -> Expr
 (.||) expr1 expr2 = Or expr1 expr2
 
-(.!) :: Expr -> Expr
-(.!) expr = Not expr
+neg :: Expr -> Expr
+neg expr = Not expr
 
 (.==>) :: Expr -> Expr -> Expr
 (.==>) expr1 expr2 = Impl expr1 expr2

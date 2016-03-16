@@ -4,8 +4,6 @@ import SyntaxTransformer
 import GCL
 import Transformer
 
-s = neg (i 0 .< ref "x")
-
 s1 :: Stmt
 s1 = var ["x","y","n"] 
             [ assume (i 0 .<  ref "x") ,
@@ -57,17 +55,17 @@ s3 = var ["a", "i", "j","k"] [
           ]-}
 
 swap :: Stmt
-swap = prog "swap" ["i", "j", "a"] ["a'"]
+swap = prog "swap" ["i", "j", "a"] ["a"]
         [
           var ["tmp", "c", "b"]
             [
-              assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")), 
+              --assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")), 
               ref "tmp" .=  ref "a" `repby` ref "i",
               ref "a" `repby` ref "i" .=  ref "a" `repby` ref "j",
-              ref "a" `repby` ref "j" .=  ref "tmp",
-              assert ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b"))
-            ],
-          ref "a'" .= ref "a"
+              ref "a" `repby` ref "j" .=  ref "tmp"
+              --assert ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b"))
+            ]
+          --ref "a'" .= ref "a"
         ]
 
 swapTest = var ["a", "i", "j", "z"]
@@ -106,6 +104,7 @@ simCode = var ["a","b"]
                 assert ((ref "a" .== ref "b"))
             ]
 
+<<<<<<< HEAD
 forallExample :: Stmt
 forallExample = var ["j","i","N","min","a"]
                   [
@@ -115,16 +114,6 @@ forallExample = var ["j","i","N","min","a"]
                       (ref "min" .< ref "a")))
                   ]
 
-simArray :: Stmt
-simArray = var ["a","b"] 
-            [assume ((ref "a" .== ref "b")),
-                ref "b" .= i 6,
-                (sim [ref "a" `repby` i 0,ref "b"] [ref "b" `minus` i 1,i 5]),
-                (sim [ref "a" `repby` i 0,ref "b"] [ref "a" `repby` i 0 `minus` i 1,i 4]),
-             
-                   assert ((ref "a" `repby` i 0 .== ref "b"))            ]
-
-                  
 minind :: Stmt
 minind = prog "minind" ["a","i","N"] ["r"]
             [
@@ -136,8 +125,6 @@ minind = prog "minind" ["a","i","N"] ["r"]
                 ref "r" .= ref "i",
                 ref "min" .= ref "a" `repby` ref "i",
                 inv (forall "x" (ref "j" .< ref "N" .&& ref "j" .<= ref "i" .&& ref "j" .<= ref "r" .&&
-
-
                                 (ref "j" .== ref "i" .==> ref "r" .== ref "i") .&&
                                 (ref "j" .< ref "i" .==> ref "r" .< ref "i") .&&
                                 ref "min" .== ref "a" `repby` ref "r" .&&
@@ -164,8 +151,8 @@ sort = var ["a","a'","i","N"]
         [
           minind,
           ref "i" .= i 0,
-          inv (True_) 
-            (while (ref "i" .< ref "N" `minus` i 1)
+          inv () 
+            (while ref "i" .< ref "N" `minus` i 1
               [
                 var ["m"]
                   [
@@ -180,6 +167,29 @@ sort = var ["a","a'","i","N"]
                     ref "i" .= ref "i" `plus` i 1
                   ]
                 
-              ]),
+              ])
+
+          pcall "minind" [] []
           ref "a'" .= ref "a"
         ]-}
+=======
+
+
+simArray :: Stmt
+simArray = var ["a","b"] 
+            [assume ((ref "a" .== ref "b")),
+                ref "b" .= i 6,
+                (sim [ref "a" `repby` i 0,ref "b"] [ref "b" `minus` i 1,i 5]),
+                (sim [ref "a" `repby` i 0,ref "b"] [ref "a" `repby` i 0 `minus` i 1,i 4]),
+                assert ((ref "a" `repby` i 0 .== ref "b"))
+            ]
+
+forallExample :: Stmt
+forallExample = var ["j","i","N","min","a"]
+                  [
+                    assume (forall "x" (ref "j" .< ref "x" .&& ref "x" .< ref "i" .&& ref "i" .< ref "N" .==>
+                      (ref "min" .< ref "a" `repby` ref "x"))),
+                    assert (forall "x" (ref "j" .< ref "x" .&& ref "x" .< ref "i" .&& ref "i" .< ref "N" .==>
+                      (ref "min" .< ref "a" `repby` ref "x")))
+                  ]
+>>>>>>> c3dbd731803fc3578170a70654c994a8a77238ab
