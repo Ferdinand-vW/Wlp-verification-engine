@@ -12,48 +12,53 @@ import Data.SBV(modelExists)
 import SyntaxTransformer
 import Control.Monad
 
-transform :: Stmt -> Stmt
+transform :: Stmt -> (Stmt, [Var])
 transform stmt =
-  let (ProgramInfo vars progMap) = stmt_ProgramInfo stmt
-      varsL = S.toList vars
+  let vars = collectVars stmt
+      progMap = collectPrograms stmt
+      varsL = map nameOf $ S.toList vars
       varMap = M.fromList $ zip varsL varsL
-  in snd $ mkFreshStmt 0 varMap progMap stmt
+      freshStmt = snd $ mkFreshStmt 0 varMap progMap stmt
+  in (freshStmt, S.toList (collectVars freshStmt))
 
 
-mkFreshStmts :: Int -> M.Map String String -> M.Map String ([String],[String],[Stmt]) -> [Stmt] -> (Int,[Stmt])
+mkFreshStmts :: Int -> M.Map String String -> M.Map String ([Var],[Var],[Stmt]) -> [Stmt] -> (Int,[Stmt])
 mkFreshStmts n varMap progMap stmts =
   foldr (\x (y,stmts') -> let (n',stmt) = mkFreshStmt y varMap progMap x
                           in (n',stmt : stmts')) (n,[]) stmts
 
-mkFreshStmt :: Int -> M.Map String String -> M.Map String ([String],[String],[Stmt])-> Stmt -> (Int,Stmt)
-mkFreshStmt n varMap progMap (Var xs stmts) =
-  let dupVars = filter (\x -> M.member x varMap) xs
-      freshVars = map (++ show n) dupVars
+mkFreshStmt :: Int -> M.Map String String -> M.Map String ([Var],[Var],[Stmt])-> Stmt -> (Int,Stmt)
+mkFreshStmt n varMap progMap (Vars xs stmts) =
+  let dupVars = filter (\x -> M.member (nameOf x) varMap) xs
+      freshVars = map (modifyName (++ show n)) dupVars
       remVars = xs L.\\ dupVars
-      newVarMap = M.union (M.fromList (zip dupVars freshVars)) varMap
+      newVarMap = M.union (M.fromList (zip (map nameOf dupVars) (map nameOf freshVars))) varMap
       (n1,newStmts) = mkFreshStmts (n + 1) newVarMap progMap stmts
-  in (n1, Var (L.union remVars freshVars) newStmts)
+  in (n1, Vars (L.union remVars freshVars) newStmts)
 mkFreshStmt n varMap progMap (PCall name args vars) =
   let (n1,expr1) = mkFreshExprs n varMap args
       (n2,expr2) = mkFreshExprs n1 varMap vars
       (prms,resv,body) = fromJust $ M.lookup name progMap
-      dupPrms = filter (\x -> M.member x varMap) prms   
-      dupResv = filter (\x -> M.member x varMap) resv
-      freshPrms = map (++ show n) dupPrms
-      freshResv = map (++ show n) dupResv
+      dupPrms = filter (\x -> M.member (nameOf x) varMap) prms 
+      dupResv = filter (\x -> M.member (nameOf x) varMap) resv
+      freshPrms = map (modifyName (++ show n)) dupPrms
+      freshResv = map (modifyName (++ show n)) dupResv
       remPrms = prms L.\\ dupPrms
       remResv = resv L.\\ dupResv
-      newVarMap = M.union (M.fromList (zip (dupPrms ++ dupResv) (freshPrms ++ freshResv))) varMap
+      newVarMap = M.union (M.fromList (zip ((map nameOf dupPrms) ++ (map nameOf dupResv)) 
+                          ((map nameOf freshPrms) ++ (map nameOf freshResv)))) varMap
       (n3,body1) = mkFreshStmts (n + 1) newVarMap progMap body
       allPrms = L.union remPrms freshPrms
+      prmsName = map nameOf allPrms
       allResv = L.union remResv freshResv
-      transformed = Var (L.union allPrms allResv)
+      resvName = map nameOf allResv
+      transformed = Vars (L.union allPrms allResv)
           (
-            map (\(x,y) -> Assign (Name x) y) (zip allPrms expr1)
+            map (\(x,y) -> Assign (Name x) y) (zip prmsName expr1)
             ++
             body1
             ++
-            map (\(x,y) -> Assign x (Name y)) (zip expr2 allResv)
+            map (\(x,y) -> Assign x (Name y)) (zip expr2 resvName)
           )
   in (n3,transformed)
 mkFreshStmt n varMap progMap (Sim vars1 vars2) =
@@ -71,7 +76,7 @@ mkFreshStmt n varMap progMap (Sim vars1 vars2) =
       headStmp = foldr (\(x,y) z -> (Assign (correctType x (fromJust $ M.lookup x newVarsLeft)) 
                                             (correctType y $ fromJust $ M.lookup y (M.fromList newVarTypesRight))) : z) [] $ zip newVars oldVars
       bodyStmp = foldr (\(x,y) z -> (Assign x y): z ) [] $ zip expr1 modRight
-      transformed = Var [] $ headStmp ++ bodyStmp    
+      transformed = Vars [] $ headStmp ++ bodyStmp    
   in (n2,transformed)
 mkFreshStmt n varMap progMap (Pre expr) =
   let (n1,expr1) = mkFreshExpr n varMap expr
@@ -188,3 +193,13 @@ newVar s old new | M.member s old = fromJust $ M.lookup (fromJust $ M.lookup s o
 correctType :: String -> Maybe Expr -> Expr
 correctType s Nothing = Name s
 correctType s (Just i) = Repby (Name s) i
+
+modifyName :: (String -> String) -> Var -> Var
+modifyName f (Int s)   = Int (f s)
+modifyName f (Array s) = Array (f s)
+modifyName f (Univ s)  = Univ (f s)
+
+nameOf :: Var -> String
+nameOf (Int s) = s
+nameOf (Array s) = s
+nameOf (Univ s) = s

@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Prover 
-(proveImpl,provePred)
+(proveImpl)
 where
 
 import qualified Data.Set as S
@@ -10,44 +10,54 @@ import Data.Maybe
 import Data.SBV
 import Control.Monad
 
-import SyntaxTransformer
-
-data Ty = T_Array | T_Integer | T_ForAll deriving (Show,Eq,Ord)
-
+import SyntaxTransformer 
 
 --proveImpl :: Expr -> Expr -> IO SBV.ThmResult
-proveImpl e1 e2 = do
-  let e1Vars = collectVars e1
-      e2Vars = collectVars e2
-      varSet = S.filter (\(a,t) -> t==T_Integer) $ S.union e1Vars e2Vars
-      forallSet = S.filter (\(a,t) -> t==T_ForAll) $ S.union e1Vars e2Vars
-      arrSet = S.filter (\(a,t) -> t==T_Array) $ S.union e1Vars e2Vars
-  putStrLn $ show forallSet
-  putStrLn $ "Varset: " ++ show varSet
-  putStrLn $ "Arrset: " ++ show arrSet
-  vars <- return $ foldM (\y x -> do
+proveImpl vars e1 e2 = do
+  let varMap = M.fromList $ zip (map nameOf vars) vars
+      e1Vars = collectRefs e1
+      e2Vars = collectRefs e2
+      allVars = S.union e1Vars e2Vars
+      intList = M.keys $ M.filterWithKey
+        (\k a -> case a of
+                Int s -> True && S.member k allVars
+                _ -> False) varMap
+      forallList = M.keys $ M.filterWithKey
+        (\k a -> case a of
+                Univ s -> True && S.member k allVars
+                _ -> False) varMap
+      arrList = M.keys $ M.filterWithKey 
+        (\k a -> case a of
+                Array s -> True && S.member k allVars
+                _ -> False) varMap
+  putStrLn $ show allVars
+  putStrLn $ show varMap
+  putStrLn $ "ForallsetL " ++ show forallList
+  putStrLn $ "Varset: " ++    show intList
+  putStrLn $ "Arrset: " ++    show arrList
+  ints <- return $ foldM (\y x -> do
     z <- sInteger x
     return $ M.insert x z y
-    ) M.empty (fst $ unzip $ S.toList varSet)
-  arr <- return $ foldM (\y x -> do
+    ) M.empty intList
+  arrays <- return $ foldM (\y x -> do
     z <- newArray x Nothing :: Symbolic (SArray Integer Integer)
     return $ M.insert x z y
-    ) M.empty (fst $ unzip $ S.toList arrSet)
-  forallVars <- return $ foldM (\y x -> do
+    ) M.empty arrList
+  univs <- return $ foldM (\y x -> do
   z <- forall x :: Symbolic SInteger
   return $ M.insert x z y
-  ) M.empty (fst $ unzip $ S.toList forallSet)
+  ) M.empty forallList
   prove $ do
-    vars' <- vars
-    arr' <- arr
-    forallVars' <- forallVars
-    pred1 <- mkPred (M.union vars' forallVars') arr' e1
-    pred2 <- mkPred (M.union vars' forallVars') arr' e2
+    ints' <- ints
+    arrays' <- arrays
+    univs' <- univs
+    pred1 <- mkPred (M.union ints' univs') arrays' e1
+    pred2 <- mkPred (M.union ints' univs') arrays' e2
     return $ pred1 ==> pred2
 
 
 ----provePred :: Expr -> IO SBV.ThmResult
-provePred e = do
+{-provePred e = do
   let eVars = S.filter (\(a,t) -> t==T_Integer) $ collectVars e
       arrSet = S.filter (\(a,t) -> t==T_Array) $ collectVars e
   vars <- return $ foldM (\y x -> do
@@ -64,7 +74,7 @@ provePred e = do
     arr' <- arr
     p <- mkPred vars' arr' e
     error $ show p
-    return p
+    return p-}
 
 test :: IO ()
 test = do
@@ -118,9 +128,14 @@ test2 = do
 
 mkPred :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Predicate
 mkPred vars arr (Equal e1 e2)  = do
-  p1 <- mkSymInt vars arr e1
-  p2 <- mkSymInt vars arr e2
-  return $ p1 .== p2
+  p1 <- mkSymEq vars arr e1
+  case p1 of
+      Left sInt1 -> do
+        Left sInt2 <- mkSymEq vars arr e2
+        return $ sInt1 .== sInt2
+      Right sArr1 -> do
+        Right sArr2 <- mkSymEq vars arr e2
+        return $ sArr1 .== sArr2
 mkPred vars arr (Lower e1 e2)  = do
   p1 <- mkSymInt vars arr e1 
   p2 <- mkSymInt vars arr e2
@@ -150,6 +165,17 @@ mkPred vars arr (ForAll s e)   = do
 mkPred vars arr True_ = return true
 mkPred vars arr _ = error "Should not occur"
 
+mkSymEq :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic (Either SInteger (SArray Integer Integer))
+mkSymEq vars arr (Name s) = 
+  case M.lookup s arr of
+    Just arr' -> return $ Right arr'
+    Nothing -> do 
+      sInt <- mkSymInt vars arr (Name s)
+      return $ Left sInt
+mkSymEq vars arr expr = do
+  sInt <- mkSymInt vars arr expr
+  return $ Left sInt
+
 mkSymInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic SInteger
 mkSymInt vars arr (Minus e1 e2) = mkInt vars arr (-) e1 e2
 mkSymInt vars arr (Plus e1 e2) = mkInt vars arr (+) e1 e2
@@ -157,6 +183,9 @@ mkSymInt vars arr (Lit i) = return i
 mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
 mkSymInt vars arr (Repby (Name s) (Lit index)) = return $ readArray (fromJust $ M.lookup s arr) index
 mkSymInt vars arr (Repby (Name s) (Name index))  = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
+mkSymInt vars arr (Repby (Name s) index) = do
+                  index' <- mkSymInt vars arr index 
+                  return $ readArray (fromJust $ M.lookup s arr) index'
 mkSymInt vars arr expr = error $ show expr
 
 mkInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> (SInteger -> SInteger -> SInteger) -> Expr -> Expr -> Symbolic SInteger
@@ -190,10 +219,10 @@ mkInt vars arr op e1 e2 = do
   s2 <- mkSymInt vars arr e2
   return $ s1 `op` s2
 
-collectVars :: Expr -> S.Set (String, Ty)
+{-collectVars :: Expr -> S.Set String
 collectVars True_ = S.empty
 collectVars (Lit i) = S.empty
-collectVars (Name s) = S.singleton (s, T_Integer)
+collectVars (Name s) = S.singleton s
 collectVars (Minus e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (Plus e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (Equal e1 e2) = S.union (collectVars e1) (collectVars e2)
@@ -203,14 +232,19 @@ collectVars (And e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (Or e1 e2) = S.union (collectVars e1) (collectVars e2)
 collectVars (Not e) = collectVars e
 collectVars (Impl e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (ForAll s e) = S.union (S.singleton (s,T_ForAll)) (S.difference (collectVars e) (S.singleton (s,T_Integer)))
-collectVars (Repby (Name e1) (Name e2)) = S.union (S.singleton (e1,T_Array)) (S.singleton (e2, T_Integer))
-collectVars (Repby (Name s) i) = S.singleton (s, T_Array)
-collectVars expr = error $ "Could not identify: " ++ show expr
+collectVars (ForAll s e) = S.union (S.singleton s) (collectVars e)
+collectVars (Repby (Name e1) (Name e2)) = S.union (S.singleton e1) (S.singleton e2)
+collectVars (Repby (Name s) i) = S.union (S.singleton s) (collectVars i)
+collectVars expr = error $ "Could not identify: " ++ show expr-}
 
 --Check the type of the var
-varType :: [String] -> [String] -> String -> Maybe Ty
+{-varType :: [String] -> [String] -> String -> Maybe Ty
 varType var arr s
     | elem s var = Just T_Integer
     | elem s arr = Just T_Array
-    | otherwise = Nothing
+    | otherwise = Nothing-}
+
+nameOf :: Var -> String
+nameOf (Int s) = s
+nameOf (Array s) = s
+nameOf (Univ s) = s

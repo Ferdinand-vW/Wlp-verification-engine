@@ -2,8 +2,8 @@ type Body = [Stmt]
 type Exprs = [Expr]
 
 data Stmt
-  | Var     vars :: {[String]}  body :: Body
-  | Prog    name :: String    params :: {[String]} results :: {[String]} body :: Body
+  | Vars     vars :: {[Var]}  body :: Body
+  | Prog    name :: String    params :: {[Var]} results :: {[Var]} body :: Body
   | PCall   name :: String  args :: Exprs res :: Exprs
   | Pre     expr :: Expr
   | Post    expr :: Expr
@@ -30,7 +30,15 @@ data Expr
   | Repby   expr1 :: Expr   expr2 :: Expr
   | True_
 
+data Var
+  | Int s :: String
+  | Array s :: String
+  | Univ s :: String
+
 deriving Stmt : Show
 deriving Expr : Show
+deriving Var : Show
 deriving Stmt : Eq
 deriving Expr : Eq
+deriving Var : Eq
+deriving Var : Ord

@@ -4,8 +4,8 @@ import SyntaxTransformer
 
 import Data.SBV(SInteger)
 
-var :: [String] -> [Stmt] -> Stmt
-var vars body = Var vars body
+var :: [Var] -> [Stmt] -> Stmt
+var vars body = Vars vars body
 
 pcall :: String -> [Expr] -> [Expr] -> Stmt
 pcall name args vars = PCall name args vars
@@ -15,6 +15,12 @@ repby var index = Repby var index
 
 assume :: Expr -> Stmt
 assume pre = Pre pre
+
+int :: String -> Var
+int s = Int s
+
+array :: String -> Var
+array s = Array s
 
 assert :: Expr -> Stmt
 assert post = Post post
@@ -31,7 +37,7 @@ sim e1 e2 = Sim e1 e2
 ref :: String -> Expr
 ref s = Name s
 
-prog :: String -> [String] -> [String] -> [Stmt] -> Stmt
+prog :: String -> [Var] -> [Var] -> [Stmt] -> Stmt
 prog s params results stmts = Prog s params results stmts
 
 forall :: String -> Expr -> Expr

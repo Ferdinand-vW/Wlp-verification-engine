@@ -4,10 +4,8 @@ import SyntaxTransformer
 import GCL
 import Transformer
 
-s = neg (i 0 .< ref "x")
-
 s1 :: Stmt
-s1 = var ["x","y","n"] 
+s1 = var [int "x",int "y",int "n"] 
             [ assume (i 0 .<  ref "x") ,
                 inv (i 0 .<= ref "x")
                     (while (i 0 .< ref "x")  [(ref "x") .= (ref "x" `minus` i 1) ]),
@@ -16,14 +14,14 @@ s1 = var ["x","y","n"]
             ]
 
 s2 :: Stmt
-s2 = var ["x" , "y"] 
+s2 = var [int "x" , int "y"] 
             [ assume (i 2 .<=  ref "x") ,
                 inv (i 0 .<= ref "x")
                     (while (i 0 .< ref "x")  [(ref "x") .= (ref "x" `minus` i 2) ]),
-                var ["x","z"]
+                var [int "x",int "z"]
                   [
                     ref "x" .= ref "y",
-                    var ["x","z"]
+                    var [int "x",int "z"]
                       [
                         ref "z" .= forall "x" (forall "x" (ref "x" .< ref "y"))
                       ]
@@ -32,14 +30,14 @@ s2 = var ["x" , "y"]
                 assert (ref "y" .== i 0)
             ]
 
-s3 = var ["x","y"]
+s3 = var [int "x",int "y"]
       [
         assume (ref "x" .< i 0),
-        prog "inc2" ["a"] ["y"]
+        prog "inc2" [int "a"] [int "y"]
           [
             ref "y" .= ref "a" `plus` i 1
           ],
-        prog "inc" ["b"] ["z"]
+        prog "inc" [int "b"] [int "z"]
           [
             pcall "inc2" [ref "b"] [ref "z"]
           ],
@@ -56,30 +54,48 @@ s3 = var ["a", "i", "j","k"] [
             assert ((ref "a" `repby` ref "j") .== i 12)
           ]-}
 
-swap :: Stmt
-swap = prog "swap" ["i", "j", "a"] ["a'"]
+test :: Stmt
+test = var [array "a", array "b"]
         [
-          var ["tmp", "c", "b"]
+          assume (neg $ ref "a" .== ref "b"),
+          ref "a" .= ref "b",
+          assert (ref "a" .== ref "b")
+        ]
+
+swap :: Stmt
+swap = prog "swap" [int "i", int "j", array "a"] [array "a'"]
+        [
+          var [int "tmp"]
+            [
+              --assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")), 
+              ref "tmp" .=  ref "a" `repby` ref "i",
+              ref "a" `repby` ref "i" .=  ref "a" `repby` ref "j",
+              ref "a" `repby` ref "j" .=  ref "tmp"
+              --assert ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b"))
+            ],
+          ref "a'" .= ref "a"
+        ]
+
+swapTest' = var [array "a", array "e", int "tmp", int "i", int "j", int "c", int "b"]
             [
               assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")), 
               ref "tmp" .=  ref "a" `repby` ref "i",
               ref "a" `repby` ref "i" .=  ref "a" `repby` ref "j",
               ref "a" `repby` ref "j" .=  ref "tmp",
-              assert ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b"))
-            ],
-          ref "a'" .= ref "a"
-        ]
+              ref "e" .= ref "a",
+              assert ((ref "e" `repby` ref "i" .== ref "c") .&& (ref "e" `repby` ref "j" .== ref "b"))
+            ]
 
-swapTest = var ["a", "i", "j", "z"]
+swapTest = var [array "a", array "b", int "i", int "j", int "c", int "d"]
             [
-              assume (ref "a" `repby` ref "i" .== ref "z" `repby` ref "i"),
+              assume (ref "a" `repby` ref "i" .== ref "c" .&& ref "a" `repby` ref "j" .== ref "d"),
               swap,
-              pcall "swap" [ref "i", ref "j", ref "a"] [ref "z"],
-              assert (ref "a" `repby` ref "i" .== ref "z" `repby` ref "j")
+              pcall "swap" [ref "i", ref "j", ref "a"] [ref "a"],
+              assert (ref "a" `repby` ref "i" .== ref "d" .&& ref "a" `repby` ref "j" .== ref "c")
             ]
 
 swap' :: Stmt
-swap' = var ["i", "j", "tmp", "c", "b"] 
+swap' = var [int "i", int "j", int "tmp", int "c", int "b"] 
             [assume ((ref "i" .== ref "b") .&& (ref "j" .== ref "c")), 
             ref "tmp" .= ref "i",
                 ref "i" .=  ref "j",
@@ -89,7 +105,7 @@ swap' = var ["i", "j", "tmp", "c", "b"]
 
 
 swap'' :: Stmt
-swap'' = var ["a", "i", "j", "tmp", "c", "b"] 
+swap'' = var [array "a", int "i", int "j", int "tmp", int "c", int "b"] 
             [assume ((ref "a" `repby` i 0 .== ref "b") .&& (ref "a" `repby` i 1 .== ref "c")), 
             ref "tmp" .=  ref "a" `repby` i 0,
                 ref "a" `repby` i 0 .=  ref "a" `repby` i 1,
@@ -98,7 +114,7 @@ swap'' = var ["a", "i", "j", "tmp", "c", "b"]
             ]
 
 simCode :: Stmt
-simCode = var ["a","b"] 
+simCode = var [array "a", array "b"] 
             [assume ((ref "a" .== ref "b")),
                 ref "b" .= i 6,
                 (sim [ref "a",ref "b"] [ref "b" `minus` i 1,i 5]),
@@ -107,7 +123,7 @@ simCode = var ["a","b"]
             ]
 
 forallExample :: Stmt
-forallExample = var ["j","i","N","min","a"]
+forallExample = var [int "j",int "i",int "N",int "min",array "a"]
                   [
                     assume (forall "x" (ref "j" .< ref "x" .&& ref "x" .< ref "i" .&& ref "i" .< ref "N" .==>
                       (ref "min" .< ref "a"))),
@@ -116,7 +132,7 @@ forallExample = var ["j","i","N","min","a"]
                   ]
 
 simArray :: Stmt
-simArray = var ["a","b"] 
+simArray = var [array "a",array "b"] 
             [assume ((ref "a" .== ref "b")),
                 ref "b" .= i 6,
                 (sim [ref "a" `repby` i 0,ref "b"] [ref "b" `minus` i 1,i 5]),
@@ -126,10 +142,10 @@ simArray = var ["a","b"]
 
                   
 minind :: Stmt
-minind = prog "minind" ["a","i","N"] ["r"]
+minind = prog "minind" [array "a",int "i",int "N"] [int "r"]
             [
               assume (ref "i" .< ref "N"),
-              var ["min", "j"]
+              var [int "min",int "j"]
                 [
                 
                 ref "j" .= ref "i",
@@ -159,27 +175,30 @@ minind = prog "minind" ["a","i","N"] ["r"]
                                    (ref "a" `repby` ref "r" .<= ref "a" `repby` ref "x")))
             ]
 
-{-sort :: Stmt
-sort = var ["a","a'","i","N"]
+sort :: Stmt
+sort = var [array "a",array "a'",int "i",int "N"]
         [
+          assume (ref "i" .< ref "N"),
           minind,
+          swap,
           ref "i" .= i 0,
-          inv (True_) 
+           inv (forall "x" (forall "y" ((i 0 .<= ref "x" .&& ref "x" .<= ref "y" .&& ref "y" .<= ref "i") 
+            .==> ref "a" `repby` ref "x" .<= ref "a" `repby` ref "y")))
             (while (ref "i" .< ref "N" `minus` i 1)
-              [
-                var ["m"]
-                  [
-                    pcall "minind" [ref "a", ref "i" `plus` 1, ref "N"] [ref "m"],
-                    if_then_else ref ("a" `repby` ref "m" .< ref "a" `repby` ref "i")
-                      [
-                        pcall "swap" [ref "a", ref "i", ref "m"] [ref "a"]
-                      ]
-                      [
-                        Skip
-                      ],
-                    ref "i" .= ref "i" `plus` i 1
-                  ]
-                
-              ]),
-          ref "a'" .= ref "a"
-        ]-}
+                          [
+                            var [int "m"]
+                              [
+                                pcall "minind" [ref "a", ref "i" `plus` i 1, ref "N"] [ref "m"],
+                                if_then_else (ref "a" `repby` ref "m" .< ref "a" `repby` ref "i")
+                                  [
+                                    pcall "swap" [ref "a", ref "i", ref "m"] [ref "a"]
+                                  ]
+                                  [
+                                    Skip
+                                  ],
+                                ref "i" .= ref "i" `plus` i 1
+                              ]
+                            
+                          ])
+          --ref "a'" .= ref "a"
+        ]
