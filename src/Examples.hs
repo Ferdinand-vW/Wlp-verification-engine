@@ -63,22 +63,31 @@ test = var [array "a", array "b"]
         ]
 
 swap :: Stmt
-swap = prog "swap" [int "i", int "j", array "a"] [array "a'"]
+swap = prog "swap" [int "i", int "j", array "a"] [int "i'", int "j'", array "a'"]
         [
-          var [int "tmp"]
+          var [int "tmp", int "b", int "c"]
             [
-              --assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")), 
               ref "tmp" .=  ref "a" `repby` ref "i",
               ref "a" `repby` ref "i" .=  ref "a" `repby` ref "j",
               ref "a" `repby` ref "j" .=  ref "tmp"
-              --assert ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "b"))
             ],
+          ref "i'" .= ref "i",
+          ref "j'" .= ref "j",
           ref "a'" .= ref "a"
         ]
 
+swapCall :: Stmt
+swapCall = var [array "a", array "b", int "i", int "j", int "c", int "d"]
+            [
+              assume ((ref "a" `repby` ref "i" .== ref "c") .&& (ref "a" `repby` ref "j" .== ref "d")),
+              swap,
+              pcall "swap" [ref "i", ref "j", ref "a"] [ref "i", ref "j", ref "a"],
+              assert ((ref "a" `repby` ref "i" .== ref "d") .&& (ref "a" `repby` ref "j" .== ref "c"))
+            ]
+
 swapTest' = var [array "a", array "e", int "tmp", int "i", int "j", int "c", int "b"]
             [
-              assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")), 
+              assume ((ref "a" `repby` ref "i" .== ref "b") .&& (ref "a" `repby` ref "j" .== ref "c")),
               ref "tmp" .=  ref "a" `repby` ref "i",
               ref "a" `repby` ref "i" .=  ref "a" `repby` ref "j",
               ref "a" `repby` ref "j" .=  ref "tmp",
@@ -86,13 +95,7 @@ swapTest' = var [array "a", array "e", int "tmp", int "i", int "j", int "c", int
               assert ((ref "e" `repby` ref "i" .== ref "c") .&& (ref "e" `repby` ref "j" .== ref "b"))
             ]
 
-swapTest = var [array "a", array "b", int "i", int "j", int "c", int "d"]
-            [
-              assume (ref "a" `repby` ref "i" .== ref "c" .&& ref "a" `repby` ref "j" .== ref "d"),
-              swap,
-              pcall "swap" [ref "i", ref "j", ref "a"] [ref "a"],
-              assert (ref "a" `repby` ref "i" .== ref "d" .&& ref "a" `repby` ref "j" .== ref "c")
-            ]
+
 
 swap' :: Stmt
 swap' = var [int "i", int "j", int "tmp", int "c", int "b"] 

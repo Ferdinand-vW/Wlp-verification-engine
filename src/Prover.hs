@@ -30,11 +30,6 @@ proveImpl vars e1 e2 = do
         (\k a -> case a of
                 Array s -> True && S.member k allVars
                 _ -> False) varMap
-  putStrLn $ show allVars
-  putStrLn $ show varMap
-  putStrLn $ "ForallsetL " ++ show forallList
-  putStrLn $ "Varset: " ++    show intList
-  putStrLn $ "Arrset: " ++    show arrList
   ints <- return $ foldM (\y x -> do
     z <- sInteger x
     return $ M.insert x z y
