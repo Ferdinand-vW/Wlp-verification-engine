@@ -96,17 +96,41 @@ wlp mvar vars (Inv i (While g s)) q  = do
       else do
         stepPrint q (Inv i (While g s)) (neg g .&& q)
         return (invs,neg g .&& q)
+wlp mvar vars (While g s) q = do
+    putStrLn "Loop reduction"
+    putStrLn ("Q: " ++ show q)
+    fixpoint <- loopReduction 101 (neg g .==> q) g s q mvar vars
+    putStrLn "End loop reduction"
+    return ([],fixpoint)
 wlp mvar vars (Prog _ _ _ _) q = return ([],q)
-wlp mvar _ (While e1 b) q = error "We do not allow a While without an invariant.."
 wlp mvar _ _ _ = error "Not supported by our wlp function"
 
+
+loopReduction :: Int -> Expr -> Expr -> [Stmt] -> Expr -> MVar Char -> [Var] -> IO Expr
+loopReduction 0 e1 g s q mvar vars = do
+  (_,w) <- foldWlp mvar vars e1 s
+  let fixpoint = (g .&& w) .|| (neg g .&& q)
+  impl1Val <- implIsValid vars e1 fixpoint
+  if impl1Val 
+      then return fixpoint
+      else do 
+        putStrLn "No fixpoint"
+        return (neg g .&& q)
+loopReduction k e1 g s q mvar vars = do
+  (_,w) <- foldWlp mvar vars e1 s
+  let fixpoint = (g .&& w) .|| (neg g .&& q)
+  putStrLn $ show k
+  impl1Val <- implIsValid vars e1 fixpoint
+  if impl1Val 
+      then return fixpoint
+      else loopReduction (k-1) fixpoint g s q mvar vars
 
 --The assignQ is for now only allowing variable names.
 assignQ :: Expr -> (String, Maybe Expr) -> Expr -> Expr
 assignQ (Lit i)        ref expr = Lit i
 assignQ (Name s)       ref expr 
                              | s == fst ref = expr --a is the assigned value.
-                             | snd ref /= Nothing && (Name s) == (MA.fromJust $ snd ref) = error $ show expr
+                             -- | snd ref /= Nothing && (Name s) == (MA.fromJust $ snd ref) = error $ show expr ++ " " ++ (show $ snd ref) ++ " " ++ s
                              | otherwise = Name s
 assignQ (ForAll s e)   ref expr = ForAll s $ assignQ e ref expr
 assignQ (Minus e1 e2)  ref expr = Minus  (assignQ e1 ref expr) (assignQ e2 ref expr)
@@ -117,12 +141,12 @@ assignQ (LowerE e1 e2) ref expr = LowerE (assignQ e1 ref expr) (assignQ e2 ref e
 assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Impl e1 e2)   ref expr = Impl   (assignQ e1 ref expr) (assignQ e2 ref expr)
-assignQ (Not e1)       ref expr = Not    e1
+assignQ (Not e1)       ref expr = Not   $ assignQ e1 ref expr
 assignQ True_          ref expr = True_
 assignQ (Repby (Name s) index) ref expr | snd ref /= Nothing && index == (MA.fromJust $ snd ref) &&  s == fst ref = expr
                                         | snd ref == Nothing && s == fst ref = Repby expr (assignQ index ref expr)
                                         | otherwise = (Repby (Name s) (assignQ index ref expr))
-assignQ expr _ _ = error $ show expr
+assignQ expr _ _ = error $ show expr ++ "Last assign pattern"
 
 implIsValid :: [Var] -> Expr -> Expr -> IO Bool
 implIsValid vars e1 e2 = do
@@ -138,6 +162,12 @@ readInput mvar = do
 
 doStep :: MVar Char -> IO ()
 doStep mvar = do
+  --c <- readMVar mvar
+  --case c of
+  --    'n' -> return ()
+  --    ' ' -> do 
+  --          takeMVar mvar
+  --          return ()
   c <- takeMVar mvar
   case c of
     ' ' -> return ()

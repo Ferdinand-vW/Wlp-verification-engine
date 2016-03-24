@@ -171,6 +171,52 @@ mkSymEq vars arr expr = do
   sInt <- mkSymInt vars arr expr
   return $ Left sInt
 
+
+calcExpr :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Expr ->  (SInteger -> SInteger -> SInteger) -> Symbolic Expr
+calcExpr vars arr (Plus e1 (Lit e2)) q op = do
+  preCalc  <- mkInt vars arr op q e1
+  postCalc <- mkInt vars arr (+) (Lit preCalc) (Lit e2)
+  return $ Lit postCalc
+calcExpr vars arr (Plus e1 e2) q op = do
+  preCalc <- mkInt vars arr op q e1
+  calcExpr vars arr e2 (Lit preCalc) (+)
+calcExpr vars arr (Minus e1 (Lit e2)) q op = do
+  preCalc <- mkInt vars arr op q e1
+  postCalc <- mkInt vars arr (-) (Lit preCalc) (Lit e2)
+  return $ Lit postCalc
+calcExpr vars arr (Minus e1 e2) q op = do
+  preCalc <- mkInt vars arr op q e1
+  calcExpr vars arr e2 (Lit preCalc) (-)
+calcExpr vars arr (Lit e1) q _ = return $ Lit e1
+calcExpr vars arr (Name e1) q _ = return $ Name e1
+
+
+
+--mkSymInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic SInteger
+--mkSymInt vars arr (Minus e1 e2@(Lit x)) = do
+--    mkInt vars arr (-) e1 e2
+--mkSymInt vars arr (Minus e1 e2@(Name x)) = do
+--    mkInt vars arr (-) e1 e2
+--mkSymInt vars arr (Minus e1 e2) = do
+--    Lit preCalc <- calcExpr vars arr e2 e1 (-)
+--    return preCalc
+--mkSymInt vars arr (Plus e1 e2@(Lit x)) = do
+--    mkInt vars arr (-) e1 e2
+--mkSymInt vars arr (Plus e1 e2@(Name x)) = do
+--    mkInt vars arr (-) e1 e2
+--mkSymInt vars arr (Plus e1 e2) = do
+--    Lit preCalc <- calcExpr vars arr e2 e1 (+)
+--    return preCalc
+--mkSymInt vars arr (Lit i) = return i
+--mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
+--mkSymInt vars arr (Repby (Name s) (Lit index)) = return $ readArray (fromJust $ M.lookup s arr) index
+--mkSymInt vars arr (Repby (Name s) (Name index))  = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
+--mkSymInt vars arr (Repby (Name s) index) = do
+--                  index' <- mkSymInt vars arr index 
+--                  return $ readArray (fromJust $ M.lookup s arr) index'
+--mkSymInt vars arr expr = error $ (show expr) ++ "hola"
+
+
 mkSymInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic SInteger
 mkSymInt vars arr (Minus e1 e2) = mkInt vars arr (-) e1 e2
 mkSymInt vars arr (Plus e1 e2) = mkInt vars arr (+) e1 e2

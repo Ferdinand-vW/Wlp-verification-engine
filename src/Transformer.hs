@@ -119,9 +119,7 @@ mkFreshExpr n varMap (ForAll s expr) =
                     then M.adjust (\_ -> s) s varMap
                     else varMap
       (n1,expr1) = mkFreshExpr (n + 1) newVarMap expr
-  in case M.lookup s newVarMap of
-        Nothing -> (n1, ForAll s expr1)
-        Just s' -> (n1, ForAll s expr1)
+  in (n1, ForAll s expr1)
 mkFreshExpr n varMap (Minus e1 e2) = 
   let (n1,expr1) = mkFreshExpr n varMap e1
       (n2,expr2) = mkFreshExpr n1 varMap e2
