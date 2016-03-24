@@ -40,7 +40,7 @@ instance PrettyPrint Expr where
   pp (LowerE e1 e2) = pp e1 ++ " <= " ++ pp e2
   pp (And e1 e2) = pp e1 ++ " && " ++ pp e2
   pp (Or e1 e2) = pp e1 ++ " || " ++ pp e2
-  pp (Impl e1 e2) = "(" ++ pp e1 ++ ")" ++ " --> " ++ "(" ++ pp e2 ++ ")"
+  pp (Impl e1 e2) = "((" ++ pp e1 ++ ")" ++ " --> " ++ "(" ++ pp e2 ++ "))"
   pp (Repby e1 e2) = pp e1 ++ "[" ++ pp e2 ++ "]"
   pp (Not e1) = "!(" ++ pp e1 ++ ")"
   pp True_ = "True"

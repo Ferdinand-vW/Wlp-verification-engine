@@ -223,7 +223,7 @@ mkSymInt vars arr (Plus e1 e2) = mkInt vars arr (+) e1 e2
 mkSymInt vars arr (Lit i) = return i
 mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
 mkSymInt vars arr (Repby (Name s) (Lit index)) = return $ readArray (fromJust $ M.lookup s arr) index
-mkSymInt vars arr (Repby (Name s) (Name index))  = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
+mkSymInt vars arr (Repby (Name s) (Name index)) = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
 mkSymInt vars arr (Repby (Name s) index) = do
                   index' <- mkSymInt vars arr index 
                   return $ readArray (fromJust $ M.lookup s arr) index'

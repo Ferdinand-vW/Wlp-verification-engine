@@ -22,7 +22,8 @@ verifyProgram stmt = do
   let ((Vars xs stmts), vars) = transform stmt
       Pre pre = head stmts
   mvar <- newEmptyMVar
-  forkIO (readInput mvar)
+  writeFile "Output.txt" ""
+  t <- forkIO (readInput mvar)
   putStrLn ""
   putStrLn "Press space to start verification\n"
   (invs,w) <- foldWlp mvar vars True_ (tail stmts)
@@ -43,6 +44,7 @@ verifyProgram stmt = do
   putStrLn ""
   putStrLn "Now proving implication: "
   proveImpl vars pre w >>= print
+  killThread t
       
 
 foldWlp :: MVar Char -> [Var] -> Expr -> [Stmt] -> IO ([Expr],Expr)
@@ -84,12 +86,22 @@ wlp mvar vars (If g s1 s2) q = do
     return $ (xs ++ ys, (g .&& e1) .|| (neg g .&& e2))
 wlp mvar vars (Inv i (While g s)) q  = do
     impl1Val <- implIsValid vars (i .&& neg g) q
+    putStrLn "---------------------------------------"
+    putStrLn "Proving invariant I AND Not G ==> Q: "
+    putStrLn $ pp $ i .&& neg g
+    putStrLn ".==>"
+    putStrLn $ pp q
     (xs,wlpOfS) <- foldWlp mvar vars i s
+    putStrLn "Proving invariant I AND G ==> I: "
+    putStrLn $ pp $ i .&& g 
+    putStrLn ".==>"
+    putStrLn $ pp i
+    putStrLn "---------------------------------------"
     impl2Val <- implIsValid vars (i .&& g) wlpOfS
     let implInv1 = if impl1Val then [] else [i .&& neg g .==> q]
         implInv2 = if impl2Val then xs else [i .&& g .==> wlpOfS]
         invs = implInv1 ++ implInv2
-    if null invs
+    if impl1Val && impl2Val
       then do
         stepPrint q (Inv i (While g s)) i
         return (invs,i)
@@ -162,19 +174,20 @@ readInput mvar = do
 
 doStep :: MVar Char -> IO ()
 doStep mvar = do
-  --c <- readMVar mvar
-  --case c of
-  --    'n' -> return ()
-  --    ' ' -> do 
-  --          takeMVar mvar
-  --          return ()
-  c <- takeMVar mvar
+  c <- readMVar mvar
   case c of
-    ' ' -> return ()
-    _ -> doStep mvar
+      'n' -> return ()
+      ' ' -> do 
+            takeMVar mvar
+            return ()
 
 stepPrint :: Expr -> Stmt -> Expr -> IO ()
 stepPrint q stmt p = do
+  let str = "Pre: " ++ pp p ++ "\n" ++
+            "Stmt: " ++ pp stmt ++ "\n" ++
+            "Post: " ++ pp q ++ "\n" ++
+            "---------------------------------\n"
+  appendFile "Output.txt" str
   putStrLn $ "Pre: " ++ pp p
   putStrLn $ "Stmt: " ++ pp stmt
   putStrLn $ "Post: " ++ pp q
