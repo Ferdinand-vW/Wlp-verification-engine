@@ -35,7 +35,8 @@ data Var
   | Array s :: String
   | Univ s :: String
 
-
+deriving Expr : Show
+deriving Stmt : Show
 deriving Var : Show
 deriving Stmt : Eq
 deriving Expr : Eq

@@ -1,6 +1,6 @@
 
 
--- UUAGC 0.9.52.1 (Grammar.)
+-- UUAGC 0.9.52.1 (Grammar)
 
 -- Body --------------------------------------------------------
 type Body = [Stmt]
@@ -44,7 +44,7 @@ data Expr = Lit (SInteger)
           | Not (Expr)
           | Repby (Expr) (Expr)
           | True_
-          deriving ( Eq)
+          deriving ( Eq,Show)
 -- cata
 sem_Expr :: Expr ->
             T_Expr
@@ -204,7 +204,7 @@ data Stmt = Vars (([Var])) (Body)
           | Assign (Expr) (Expr)
           | Sim (Exprs) (Exprs)
           | Skip
-          deriving ( Eq)
+          deriving ( Eq,Show)
 -- cata
 sem_Stmt :: Stmt ->
             T_Stmt

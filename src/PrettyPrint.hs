@@ -46,42 +46,31 @@ instance PrettyPrint Expr where
   pp True_ = "True"
 
 
-instance Show Stmt where
-  show (Vars vars body) = "Var" ++ show vars ++ (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" body)
-  show (Assign e1 e2) = pp e1 ++ " := " ++ pp e2
-  show Skip = "Skip"
-  show (Pre e1) = "Assume " ++ pp e1
-  show (Post e1) = "Assert " ++ pp e1
-  show (If g s1 s2) = "If (" ++ pp g ++ ") {\n\t" ++
-                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s1) ++ "}\n else {\n\t" ++
-                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s2) ++ "}"
-  show (While g s) = "while (" ++ pp g ++ ")" ++ foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s
-  show (Inv e s) = "inv (" ++ pp e ++ "): " ++ pp s
---data Stmt
---  | Vars     vars :: {[Var]}  body :: Body
---  | Prog    name :: String    params :: {[Var]} results :: {[Var]} body :: Body
---  | PCall   name :: String  args :: Exprs res :: Exprs
---  | Pre     expr :: Expr
---  | Post    expr :: Expr
---  | Inv     expr :: Expr      stmt :: Stmt
---  | While   expr :: Expr      body :: Body
---  | If      expr :: Expr      left :: Body    right :: Body
---  | Assign  expr1 :: Expr     expr2 :: Expr
---  | Sim     left :: Exprs      right :: Exprs
---  | Skip
+--instance Show Stmt where
+--  show (Vars vars body) = "Var" ++ show vars ++ (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" body)
+--  show (Assign e1 e2) = pp e1 ++ " := " ++ pp e2
+--  show Skip = "Skip"
+--  show (Pre e1) = "Assume " ++ pp e1
+--  show (Post e1) = "Assert " ++ pp e1
+--  show (If g s1 s2) = "If (" ++ pp g ++ ") {\n\t" ++
+--                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s1) ++ "}\n else {\n\t" ++
+--                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s2) ++ "}"
+--  show (While g s) = "while (" ++ pp g ++ ")" ++ foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s
+--  show (Inv e s) = "inv (" ++ pp e ++ "): " ++ pp s
 
-instance Show Expr where
-  show (Lit i) = show i
-  show (Name s) = s
-  show (ForAll s e) = "ForAll " ++ s ++ "(" ++ pp e ++ ")"
-  show (Minus e1 e2) = pp e1 ++ " - " ++ pp e2
-  show (Plus e1 e2) = pp e1 ++ " + " ++ pp e2
-  show (Equal e1 e2) = pp e1 ++ " == " ++ pp e2
-  show (Lower e1 e2) = pp e1 ++ " < " ++ pp e2
-  show (LowerE e1 e2) = pp e1 ++ " <= " ++ pp e2
-  show (And e1 e2) = pp e1 ++ " && " ++ pp e2
-  show (Or e1 e2) = pp e1 ++ " || " ++ pp e2
-  show (Impl e1 e2) = "((" ++ pp e1 ++ ")" ++ " --> " ++ "(" ++ pp e2 ++ "))"
-  show (Repby e1 e2) = pp e1 ++ "[" ++ pp e2 ++ "]"
-  show (Not e1) = "!(" ++ pp e1 ++ ")"
-  show True_ = "True"
+
+--instance Show Expr where
+--  show (Lit i) = show i
+--  show (Name s) = s
+--  show (ForAll s e) = "ForAll " ++ s ++ "(" ++ pp e ++ ")"
+--  show (Minus e1 e2) = pp e1 ++ " - " ++ pp e2
+--  show (Plus e1 e2) = pp e1 ++ " + " ++ pp e2
+--  show (Equal e1 e2) = pp e1 ++ " == " ++ pp e2
+--  show (Lower e1 e2) = pp e1 ++ " < " ++ pp e2
+--  show (LowerE e1 e2) = pp e1 ++ " <= " ++ pp e2
+--  show (And e1 e2) = pp e1 ++ " && " ++ pp e2
+--  show (Or e1 e2) = pp e1 ++ " || " ++ pp e2
+--  show (Impl e1 e2) = "((" ++ pp e1 ++ ")" ++ " --> " ++ "(" ++ pp e2 ++ "))"
+--  show (Repby e1 e2) = pp e1 ++ "[" ++ pp e2 ++ "]"
+--  show (Not e1) = "!(" ++ pp e1 ++ ")"
+--  show True_ = "True"
