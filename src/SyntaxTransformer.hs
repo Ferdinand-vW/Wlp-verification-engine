@@ -1,6 +1,6 @@
 
 
--- UUAGC 0.9.52.1 (SyntaxTransformer.ag)
+-- UUAGC 0.9.52.1 (SyntaxTransformer)
 module SyntaxTransformer(
 Stmt(..), Expr(..), Var(..), ProgramInfo(..), collectVars, collectPrograms, collectRefs
 ) where
@@ -118,7 +118,7 @@ data Expr = Lit (SInteger)
           | Not (Expr)
           | Repby (Expr) (Expr)
           | True_
-          deriving ( Eq,Show)
+          deriving ( Eq)
 -- cata
 sem_Expr :: Expr ->
             T_Expr
@@ -763,7 +763,7 @@ data Stmt = Vars (([Var])) (Body)
           | Assign (Expr) (Expr)
           | Sim (Exprs) (Exprs)
           | Skip
-          deriving ( Eq,Show)
+          deriving ( Eq)
 -- cata
 sem_Stmt :: Stmt ->
             T_Stmt

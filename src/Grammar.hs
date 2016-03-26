@@ -1,6 +1,6 @@
 
 
--- UUAGC 0.9.52.1 (Grammar.ag)
+-- UUAGC 0.9.52.1 (Grammar.)
 
 -- Body --------------------------------------------------------
 type Body = [Stmt]
@@ -32,7 +32,6 @@ sem_Body_Nil =
 -- Expr --------------------------------------------------------
 data Expr = Lit (SInteger)
           | Name (String)
-          | PCall (String) (Exprs)
           | ForAll (String) (Expr)
           | Minus (Expr) (Expr)
           | Plus (Expr) (Expr)
@@ -45,7 +44,7 @@ data Expr = Lit (SInteger)
           | Not (Expr)
           | Repby (Expr) (Expr)
           | True_
-          deriving ( Eq,Show)
+          deriving ( Eq)
 -- cata
 sem_Expr :: Expr ->
             T_Expr
@@ -53,8 +52,6 @@ sem_Expr (Lit _i) =
     (sem_Expr_Lit _i)
 sem_Expr (Name _var) =
     (sem_Expr_Name _var)
-sem_Expr (PCall _name _args) =
-    (sem_Expr_PCall _name (sem_Exprs _args))
 sem_Expr (ForAll _var _expr) =
     (sem_Expr_ForAll _var (sem_Expr _expr))
 sem_Expr (Minus _expr1 _expr2) =
@@ -97,12 +94,6 @@ sem_Expr_Lit i_ =
 sem_Expr_Name :: String ->
                  T_Expr
 sem_Expr_Name var_ =
-    (let
-     in  ( ))
-sem_Expr_PCall :: String ->
-                  T_Exprs ->
-                  T_Expr
-sem_Expr_PCall name_ args_ =
     (let
      in  ( ))
 sem_Expr_ForAll :: String ->
@@ -202,8 +193,9 @@ sem_Exprs_Nil =
     (let
      in  ( ))
 -- Stmt --------------------------------------------------------
-data Stmt = Var (([String])) (Body)
-          | Prog (String) (([String])) (Body)
+data Stmt = Vars (([Var])) (Body)
+          | Prog (String) (([Var])) (([Var])) (Body)
+          | PCall (String) (Exprs) (Exprs)
           | Pre (Expr)
           | Post (Expr)
           | Inv (Expr) (Stmt)
@@ -212,14 +204,16 @@ data Stmt = Var (([String])) (Body)
           | Assign (Expr) (Expr)
           | Sim (Exprs) (Exprs)
           | Skip
-          deriving ( Eq,Show)
+          deriving ( Eq)
 -- cata
 sem_Stmt :: Stmt ->
             T_Stmt
-sem_Stmt (Var _vars _body) =
-    (sem_Stmt_Var _vars (sem_Body _body))
-sem_Stmt (Prog _name _params _body) =
-    (sem_Stmt_Prog _name _params (sem_Body _body))
+sem_Stmt (Vars _vars _body) =
+    (sem_Stmt_Vars _vars (sem_Body _body))
+sem_Stmt (Prog _name _params _results _body) =
+    (sem_Stmt_Prog _name _params _results (sem_Body _body))
+sem_Stmt (PCall _name _args _res) =
+    (sem_Stmt_PCall _name (sem_Exprs _args) (sem_Exprs _res))
 sem_Stmt (Pre _expr) =
     (sem_Stmt_Pre (sem_Expr _expr))
 sem_Stmt (Post _expr) =
@@ -246,17 +240,25 @@ wrap_Stmt :: T_Stmt ->
 wrap_Stmt sem (Inh_Stmt) =
     (let ( ) = sem
      in  (Syn_Stmt))
-sem_Stmt_Var :: ([String]) ->
-                T_Body ->
-                T_Stmt
-sem_Stmt_Var vars_ body_ =
+sem_Stmt_Vars :: ([Var]) ->
+                 T_Body ->
+                 T_Stmt
+sem_Stmt_Vars vars_ body_ =
     (let
      in  ( ))
 sem_Stmt_Prog :: String ->
-                 ([String]) ->
+                 ([Var]) ->
+                 ([Var]) ->
                  T_Body ->
                  T_Stmt
-sem_Stmt_Prog name_ params_ body_ =
+sem_Stmt_Prog name_ params_ results_ body_ =
+    (let
+     in  ( ))
+sem_Stmt_PCall :: String ->
+                  T_Exprs ->
+                  T_Exprs ->
+                  T_Stmt
+sem_Stmt_PCall name_ args_ res_ =
     (let
      in  ( ))
 sem_Stmt_Pre :: T_Expr ->
@@ -302,5 +304,44 @@ sem_Stmt_Sim left_ right_ =
      in  ( ))
 sem_Stmt_Skip :: T_Stmt
 sem_Stmt_Skip =
+    (let
+     in  ( ))
+-- Var ---------------------------------------------------------
+data Var = Int (String)
+         | Array (String)
+         | Univ (String)
+         deriving ( Eq,Ord,Show)
+-- cata
+sem_Var :: Var ->
+           T_Var
+sem_Var (Int _s) =
+    (sem_Var_Int _s)
+sem_Var (Array _s) =
+    (sem_Var_Array _s)
+sem_Var (Univ _s) =
+    (sem_Var_Univ _s)
+-- semantic domain
+type T_Var = ( )
+data Inh_Var = Inh_Var {}
+data Syn_Var = Syn_Var {}
+wrap_Var :: T_Var ->
+            Inh_Var ->
+            Syn_Var
+wrap_Var sem (Inh_Var) =
+    (let ( ) = sem
+     in  (Syn_Var))
+sem_Var_Int :: String ->
+               T_Var
+sem_Var_Int s_ =
+    (let
+     in  ( ))
+sem_Var_Array :: String ->
+                 T_Var
+sem_Var_Array s_ =
+    (let
+     in  ( ))
+sem_Var_Univ :: String ->
+                T_Var
+sem_Var_Univ s_ =
     (let
      in  ( ))

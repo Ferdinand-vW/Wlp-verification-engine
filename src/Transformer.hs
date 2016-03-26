@@ -11,6 +11,7 @@ import qualified Data.SBV as SBV
 import Data.SBV(modelExists)
 import SyntaxTransformer
 import Control.Monad
+import PrettyPrint
 
 transform :: Stmt -> (Stmt, [Var])
 transform stmt =
@@ -73,11 +74,11 @@ mkFreshStmt n varMap progMap (Sim vars1 vars2) =
       newVarTypesRight = [(fromJust $ M.lookup x varMap,y) | (x,y) <- varTypes , x `M.member` varMap]
       freshMap = M.fromList $ zip oldVars newVars
       modRight = foldr (\x y -> (modifyExpr x varMap freshMap) : y) [] vars2
-      headStmp = foldr (\(x,y) z -> (Assign (correctType x (fromJust $ M.lookup x newVarsLeft)) 
-                                            (correctType y $ fromJust $ M.lookup y (M.fromList newVarTypesRight))) : z) [] $ zip newVars oldVars
-      bodyStmp = foldr (\(x,y) z -> (Assign x y): z ) [] $ zip expr1 modRight
-      transformed = Vars [] $ headStmp ++ bodyStmp    
-  in (n2,transformed)
+      newVarsMap = foldr (\x y -> toType x : y) [] $ M.toList newVarsLeft
+      headStmp = foldr (\(x,y) z -> (Assign (Name x) (Name y)) : z) [] $ zip newVars oldVars
+      bodyStmp = foldr (\(x,y) z -> (Assign x (correctNameBody y varMap)): z ) [] $ zip expr1 modRight
+      transformed = Vars newVarsMap $ headStmp ++ bodyStmp  
+  in  (n2,transformed)
 mkFreshStmt n varMap progMap (Pre expr) =
   let (n1,expr1) = mkFreshExpr n varMap expr
   in (n1,Pre expr1)
@@ -169,6 +170,10 @@ varType :: Expr -> (String,Maybe Expr)
 varType (Name s) = (s, Nothing)
 varType (Repby (Name s) index) = (s, Just index)
 
+toType :: (String,Maybe Expr) -> Var
+toType (s, Nothing) = Int s
+toType (s, x) = Array s 
+
 modifyExpr :: Expr -> M.Map String String -> M.Map String String -> Expr
 modifyExpr (Lit i)        old new = Lit i
 modifyExpr (Name s)       old new = Name $ newVar s old new
@@ -182,15 +187,36 @@ modifyExpr (And e1 e2)    old new = And    (modifyExpr e1 old new) (modifyExpr e
 modifyExpr (Or e1 e2)     old new = Or     (modifyExpr e1 old new) (modifyExpr e2 old new)
 modifyExpr (Not e1)       old new = Not    e1
 modifyExpr True_          old new = True_
-modifyExpr (Repby (Name s) index) old new = Repby (Name $ newVar s old new) index
+modifyExpr (Repby (Name s) index) old new = Repby (Name $ newVar s old new) (modifyExpr index old new)
+--modifyExpr (Repby (Name s) (Name index)) old new = Repby (Name $ newVar s old new) (Name $ newVar index old new)
 
 newVar :: String -> M.Map String String -> M.Map String String -> String
-newVar s old new | M.member s old = fromJust $ M.lookup (fromJust $ M.lookup s old) new
+newVar s old new | M.member s old = newVar' (fromJust $ M.lookup s old) new
                  | otherwise = s
+--newVar:: String -> String -> M.Map String String -> String
+newVar' old new | M.member old new = fromJust $ M.lookup old new
+                | otherwise = old
 
-correctType :: String -> Maybe Expr -> Expr
-correctType s Nothing = Name s
-correctType s (Just i) = Repby (Name s) i
+correctType :: String -> Maybe Expr -> M.Map String String -> Expr
+correctType s Nothing _ = Name s
+correctType s (Just n) vars = Repby (Name s) $ correctNameHead n vars
+
+correctNameHead :: Expr -> M.Map String String -> Expr
+correctNameHead (Name s) vars | M.member s vars = Name $ fromJust $ M.lookup s vars 
+                        | otherwise = Name s
+correctNameHead (Lit s) _ = Lit s
+correctNameHead (Repby (Name s) index) vars = error "Dit kan niet gebeuren"
+
+
+--The correctNameBody is used in the body of the sim assignments.
+correctNameBody :: Expr -> M.Map String String -> Expr
+correctNameBody (Repby x (Name n)) vars | M.member n vars = Repby x (Name $ fromJust $ M.lookup n vars)
+                                        | n == "b" = error "Dit mag niet"
+                                        | otherwise = Repby x $ Name n
+correctNameBody (Name s) vars | M.member s vars = Name $ (fromJust $ M.lookup s vars)
+                              | otherwise = error "Mag niet geeuren"
+correctNameBody (Lit s) _ = Lit s
+correctNameBody s _ = s
 
 modifyName :: (String -> String) -> Var -> Var
 modifyName f (Int s)   = Int (f s)

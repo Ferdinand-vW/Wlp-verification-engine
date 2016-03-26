@@ -11,7 +11,7 @@ import Data.SBV
 import Control.Monad
 
 import SyntaxTransformer 
-
+import PrettyPrint
 --proveImpl :: Expr -> Expr -> IO SBV.ThmResult
 proveImpl vars e1 e2 = do
   let varMap = M.fromList $ zip (map nameOf vars) vars
