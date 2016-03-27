@@ -32,6 +32,7 @@ instance PrettyPrint Stmt where
 instance PrettyPrint Expr where
   pp (Lit i) = show i
   pp (Name s) = s
+  pp (Exists s e) = "Exists " ++ s ++ "(" ++ pp e ++ ")"
   pp (ForAll s e) = "ForAll " ++ s ++ "(" ++ pp e ++ ")"
   pp (Minus e1 e2) = pp e1 ++ " - " ++ pp e2
   pp (Plus e1 e2) = pp e1 ++ " + " ++ pp e2

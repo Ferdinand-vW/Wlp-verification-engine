@@ -1,5 +1,5 @@
 module Transformer (
-transform
+transform, toPrenexNF, mkFreshExpr
 )where
 
 import qualified Data.List as L
@@ -8,6 +8,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import qualified Data.SBV as SBV
 
+import PrettyPrint
 import Data.SBV(modelExists)
 import SyntaxTransformer
 import Control.Monad
@@ -116,10 +117,20 @@ mkFreshExpr n varMap (Name s) =
     Just s' -> (n,Name s')
 mkFreshExpr n varMap (ForAll s expr) =
   let newVarMap = if M.member s varMap
-                    then M.adjust (\_ -> s) s varMap
-                    else varMap
+                    then M.adjust (\s' -> s' ++ show n) s varMap
+                    else M.insert s (s ++ show n) varMap
       (n1,expr1) = mkFreshExpr (n + 1) newVarMap expr
-  in (n1, ForAll s expr1)
+  in case M.lookup s newVarMap of
+      Just s' -> (n1, ForAll s' expr1)
+      Nothing -> error "undefined"
+mkFreshExpr n varMap (Exists s expr) =
+  let newVarMap = if M.member s varMap
+                    then M.adjust (\s' -> s' ++ show n) s varMap
+                    else M.insert s (s ++ show n) varMap
+      (n1,expr1) = mkFreshExpr (n + 1) newVarMap expr
+  in case M.lookup s newVarMap of
+      Just s' -> (n1, Exists s' expr1)
+      Nothing -> error "undefined"
 mkFreshExpr n varMap (Minus e1 e2) = 
   let (n1,expr1) = mkFreshExpr n varMap e1
       (n2,expr2) = mkFreshExpr n1 varMap e2
@@ -201,3 +212,108 @@ nameOf :: Var -> String
 nameOf (Int s) = s
 nameOf (Array s) = s
 nameOf (Univ s) = s
+nameOf (Exis s) = s
+
+toPrenexNF :: Expr -> Expr
+toPrenexNF (And (ForAll s e1) e2) =
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in ForAll s $ toPrenexNF (And pnf1 pnf2)
+toPrenexNF (And (Exists s e1) e2) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in Exists s $ toPrenexNF (And e1 e2)
+toPrenexNF (Or (ForAll s e1) e2) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in ForAll s $ toPrenexNF (Or e1 e2)
+toPrenexNF (Or (Exists s e1) e2) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in Exists s $ toPrenexNF (Or e1 e2)
+toPrenexNF (And e1 (ForAll s e2)) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in ForAll s $ toPrenexNF (And pnf1 pnf2)
+toPrenexNF (And e1 (Exists s e2)) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in Exists s $ toPrenexNF (And pnf1 pnf2)
+toPrenexNF (Or e1 (ForAll s e2)) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in ForAll s $ toPrenexNF (Or pnf1 pnf2)
+toPrenexNF (Or e1 (Exists s e2)) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in Exists s $ toPrenexNF (Or pnf1 pnf2)
+toPrenexNF (Not (Exists s e1)) = 
+  let pnf1 = toPrenexNF e1
+  in ForAll s $ toPrenexNF (Not pnf1)
+toPrenexNF (Not (ForAll s e1)) = 
+  let pnf1 = toPrenexNF e1
+  in Exists s $ toPrenexNF (Not pnf1)
+toPrenexNF (Impl (ForAll s e1) e2) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in Exists s $ toPrenexNF (Impl pnf1 pnf2)
+toPrenexNF (Impl (Exists s e1) e2) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in ForAll s $ toPrenexNF (Impl pnf1 pnf2)
+toPrenexNF (Impl e1 (ForAll s e2)) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in ForAll s $ toPrenexNF (Impl pnf1 pnf2)
+toPrenexNF (Impl e1 (Exists s e2)) = 
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in Exists s $ toPrenexNF (Impl pnf1 pnf2)
+toPrenexNF (And e1 e2) =
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in case pnf1 == e1 && pnf2 == e2 of
+      True -> And e1 e2
+      False -> toPrenexNF (And pnf1 pnf2)
+toPrenexNF (Or e1 e2) =
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in case pnf1 == e1 && pnf2 == e2 of
+      True -> Or e1 e2
+      False -> toPrenexNF (Or pnf1 pnf2)
+toPrenexNF (Impl e1 e2) =
+  let pnf1 = toPrenexNF e1
+      pnf2 = toPrenexNF e2
+  in case pnf1 == e1 && pnf2 == e2 of
+      True -> Impl e1 e2
+      False -> toPrenexNF (Impl pnf1 pnf2)
+toPrenexNF (Not e1) =
+  let pnf1 = toPrenexNF e1
+  in case pnf1 == e1 of
+      True -> Not e1
+      False -> toPrenexNF (Not pnf1)
+toPrenexNF (Exists s e) = Exists s (toPrenexNF e)
+toPrenexNF (ForAll s e) = ForAll s (toPrenexNF e)
+toPrenexNF e = e
+
+freeVars :: S.Set Var -> Expr -> [String]
+freeVars vars expr = 
+  let allRefs = S.toList $ collectRefs expr
+      quantifiers = map nameOf $ filter (\x -> case x of
+                                    Univ s -> True
+                                    Exis s -> True
+                                    _ -> False) (S.toList vars)
+  in  allRefs L.\\ quantifiers
+
+toExistential :: S.Set Var -> Expr -> Expr -> Expr
+toExistential vars e1 e2 = 
+  let fv1 = freeVars vars e1
+      fv2 = freeVars vars e2
+      uv = fv1 L.\\ fv2
+  in convertToExist uv e2
+
+convertToExist :: [String] -> Expr -> Expr
+convertToExist xs (Plus e1 e2) = undefined
+
+
+

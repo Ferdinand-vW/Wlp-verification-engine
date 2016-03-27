@@ -33,7 +33,7 @@ verifyProgram stmt = do
     putStrLn "Invariants are not valid:"
     mapM_ (\x -> do
         putStrLn $ pp x
-        putStrLn "") invs
+        putStrLn "-----------------------------\n\n") invs
 
   putStrLn "\n\n\n-----------------------------"
   putStrLn "RESULT: "
@@ -86,20 +86,14 @@ wlp mvar vars (If g s1 s2) q = do
     return $ (xs ++ ys, (g .&& e1) .|| (neg g .&& e2))
 wlp mvar vars (Inv i (While g s)) q  = do
     impl1Val <- implIsValid vars (i .&& neg g) q
-    putStrLn "---------------------------------------"
-    putStrLn "Proving invariant I AND Not G ==> Q: "
-    putStrLn $ pp $ i .&& neg g
-    putStrLn ".==>"
-    putStrLn $ pp q
+
+    implPrint "Proving invariant I AND Not G ==> Q: " (i .&& neg g) q
+
     (xs,wlpOfS) <- foldWlp mvar vars i s
-    putStrLn "Proving invariant I AND G ==> I: "
-    putStrLn $ pp $ i .&& g 
-    putStrLn ".==>"
-    putStrLn $ pp i
-    putStrLn "---------------------------------------"
+    implPrint "Proving invariant I AND G ==> I:" (i .&& g) i
     impl2Val <- implIsValid vars (i .&& g) wlpOfS
     let implInv1 = if impl1Val then [] else [i .&& neg g .==> q]
-        implInv2 = if impl2Val then xs else [i .&& g .==> wlpOfS]
+        implInv2 = if impl2Val then xs else [i .&& g .==> wlpOfS] ++ xs
         invs = implInv1 ++ implInv2
     if impl1Val && impl2Val
       then do
@@ -111,7 +105,7 @@ wlp mvar vars (Inv i (While g s)) q  = do
 wlp mvar vars (While g s) q = do
     putStrLn "Loop reduction"
     putStrLn ("Q: " ++ show q)
-    fixpoint <- loopReduction 101 (neg g .==> q) g s q mvar vars
+    fixpoint <- loopReduction 10 (neg g .==> q) g s q mvar vars
     putStrLn "End loop reduction"
     return ([],fixpoint)
 wlp mvar vars (Prog _ _ _ _) q = return ([],q)
@@ -147,23 +141,81 @@ assignQ (Name s)       ref expr
 assignQ (ForAll s e)   ref expr = ForAll s $ assignQ e ref expr
 assignQ (Minus e1 e2)  ref expr = Minus  (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Plus e1 e2)   ref expr = Plus   (assignQ e1 ref expr) (assignQ e2 ref expr)
-assignQ (Equal e1 e2)  ref expr = Equal  (assignQ e1 ref expr) (assignQ e2 ref expr)
-assignQ (Lower e1 e2)  ref expr = Lower  (assignQ e1 ref expr) (assignQ e2 ref expr)
-assignQ (LowerE e1 e2) ref expr = LowerE (assignQ e1 ref expr) (assignQ e2 ref expr)
+assignQ e@(Equal e1 e2)  ref expr = permExpr e ref expr
+assignQ e@(Lower e1 e2)  ref expr = permExpr e ref expr
+assignQ e@(LowerE e1 e2) ref expr = permExpr e ref expr
 assignQ (And e1 e2)    ref expr = And    (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Or e1 e2)     ref expr = Or     (assignQ e1 ref expr) (assignQ e2 ref expr)
 assignQ (Impl e1 e2)   ref expr = Impl   (assignQ e1 ref expr) (assignQ e2 ref expr)
-assignQ (Not e1)       ref expr = Not   $ assignQ e1 ref expr
+assignQ (Not e1)       ref expr = Not    (assignQ e1 ref expr)
 assignQ True_          ref expr = True_
 assignQ (Repby (Name s) index) ref expr | snd ref /= Nothing && index == (MA.fromJust $ snd ref) &&  s == fst ref = expr
                                         | snd ref == Nothing && s == fst ref = Repby expr (assignQ index ref expr)
                                         | otherwise = (Repby (Name s) (assignQ index ref expr))
 assignQ expr _ _ = error $ show expr ++ "Last assign pattern"
 
+permExpr :: Expr -> (String, Maybe Expr) -> Expr -> Expr
+permExpr (Lower e1 e2)  ref@(s, Nothing) args = Lower (assignQ e1 ref args) (assignQ e2 ref args)
+permExpr (LowerE e1 e2) ref@(s, Nothing) args = LowerE (assignQ e1 ref args) (assignQ e2 ref args)
+permExpr (Equal e1 e2)  ref@(s, Nothing) args = Equal (assignQ e1 ref args) (assignQ e2 ref args)
+permExpr expr (s, Just i) args = 
+  let xs = permArrays s $ findArrays expr
+      perms = permutations xs
+      permExprs = map (\ys -> permutation expr xs ys i .==> replaceArray ys s args expr) perms
+  in case length xs > 0 of
+        True -> case length permExprs <= 0 of
+                  False -> foldr1 (\x y -> x .&& y) permExprs
+                  True -> error "error"
+        False -> expr
+
+permutation :: Expr -> [Expr] -> [Expr] -> Expr -> Expr
+permutation e all pExprs index = 
+  let negs = all L.\\ pExprs
+      eqExprs = foldr1 (.&&) (map (\x -> x .== index) pExprs)
+  in case length (negs ++ pExprs) <= 0 of
+        False -> foldr1 (.&&) (map (.== index) pExprs ++ map (neg . (.==) index) negs)
+        True -> error $ pp e
+
+replaceArray :: [Expr] -> String -> Expr -> Expr -> Expr
+replaceArray xs ref expr (Lower e1 e2) = Lower (replaceArray xs ref expr e1) (replaceArray xs ref expr e2) 
+replaceArray xs ref expr (LowerE e1 e2) = LowerE (replaceArray xs ref expr e1) (replaceArray xs ref expr e2)
+replaceArray xs ref expr (Equal e1 e2) = Equal (replaceArray xs ref expr e1) (replaceArray xs ref expr e2)
+replaceArray xs ref expr (Minus e1 e2) = Minus (replaceArray xs ref expr e1) (replaceArray xs ref expr e2)
+replaceArray xs ref expr (Plus e1 e2) = Plus (replaceArray xs ref expr e1) (replaceArray xs ref expr e2)
+replaceArray xs ref expr (Repby (Name s) index)
+  | s == ref && index `elem` xs = expr
+  | otherwise = Repby (Name s) index
+replaceArray _ _ expr e = e
+
+
+permutations :: Eq a => [a] -> [[a]]
+permutations [] = [[]]
+permutations xs = xs : L.nub [ zs | (x,ys) <- selections xs, zs <- permutations ys ]
+
+selections :: [a] -> [(a,[a])]
+selections []     = []
+selections (x:xs) = (x,xs) : [ (y,x:ys) | (y,ys) <- selections xs ]
+
+permArrays :: String -> [Expr] -> [Expr]
+permArrays s xs = map (\(Repby _ i) -> i) $ filter (\(Repby (Name s1) index) -> s1 == s) xs
+
+findArrays :: Expr -> [Expr]
+findArrays (Lower e1 e2)  = findArrays e1 ++ findArrays e2
+findArrays (LowerE e1 e2)  = findArrays e1 ++ findArrays e2
+findArrays (Equal e1 e2)  = findArrays e1 ++ findArrays e2
+findArrays (Minus e1 e2)  = findArrays e1 ++ findArrays e2
+findArrays (Plus e1 e2) = findArrays e1 ++ findArrays e2
+findArrays (Repby s i) = [Repby s i]
+findArrays (Name s) = []
+findArrays (Lit i) = []
+
+
+
+
 implIsValid :: [Var] -> Expr -> Expr -> IO Bool
 implIsValid vars e1 e2 = do
   validity <- proveImpl vars e1 e2
-  putStrLn $ show validity
+  appendFile "Output.txt" (show validity)
   return $ not $ modelExists validity
 
 readInput :: MVar Char -> IO ()
@@ -181,9 +233,19 @@ doStep mvar = do
             takeMVar mvar
             return ()
 
+implPrint :: String -> Expr -> Expr -> IO ()
+implPrint s e1 e2 = do
+  let str = "\n--------------------------\n" ++
+            s ++ "\n" ++
+            pp e1 ++ "\n" ++
+            ".==>\n" ++
+            pp e2 ++ "\n" ++
+            "-----------------------\n" 
+  appendFile "Output.txt" str
+
 stepPrint :: Expr -> Stmt -> Expr -> IO ()
 stepPrint q stmt p = do
-  let str = "Pre: " ++ pp p ++ "\n" ++
+  let str = "\nPre: " ++ pp p ++ "\n" ++
             "Stmt: " ++ pp stmt ++ "\n" ++
             "Post: " ++ pp q ++ "\n" ++
             "---------------------------------\n"

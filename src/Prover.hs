@@ -10,7 +10,9 @@ import Data.Maybe
 import Data.SBV
 import Control.Monad
 
-import SyntaxTransformer 
+import PrettyPrint
+import SyntaxTransformer
+import Transformer(toPrenexNF, mkFreshExpr)
 
 --proveImpl :: Expr -> Expr -> IO SBV.ThmResult
 proveImpl vars e1 e2 = do
@@ -22,33 +24,42 @@ proveImpl vars e1 e2 = do
         (\k a -> case a of
                 Int s -> True && S.member k allVars
                 _ -> False) varMap
-      forallList = M.keys $ M.filterWithKey
+      {-forallList = M.keys $ M.filterWithKey
         (\k a -> case a of
                 Univ s -> True && S.member k allVars
-                _ -> False) varMap
+                _ -> False) varMap-}
       arrList = M.keys $ M.filterWithKey 
         (\k a -> case a of
                 Array s -> True && S.member k allVars
                 _ -> False) varMap
   ints <- return $ foldM (\y x -> do
     z <- sInteger x
+    --z <- forall x :: Symbolic SInteger
     return $ M.insert x z y
     ) M.empty intList
   arrays <- return $ foldM (\y x -> do
     z <- newArray x Nothing :: Symbolic (SArray Integer Integer)
     return $ M.insert x z y
     ) M.empty arrList
-  univs <- return $ foldM (\y x -> do
+  {-univs <- return $ foldM (\y x -> do
   z <- forall x :: Symbolic SInteger
   return $ M.insert x z y
-  ) M.empty forallList
+  ) M.empty forallList-}
+  let expr = toPrenexNF $ snd $ mkFreshExpr 0 M.empty (e1 `Impl` e2)
+  print "--------------------------------"
+  print $ pp expr
+  print "--------------------------------"
+  let str = "\n------------------------------\n" ++
+            pp expr ++ "\n" ++
+            "\n--------------------------------\n"
+  appendFile "Output.txt" str
   prove $ do
     ints' <- ints
     arrays' <- arrays
-    univs' <- univs
-    pred1 <- mkPred (M.union ints' univs') arrays' e1
-    pred2 <- mkPred (M.union ints' univs') arrays' e2
-    return $ pred1 ==> pred2
+    --univs' <- univs
+    pred <- mkPred ints' arrays' expr
+    --pred2 <- mkPred ints' arrays' e2
+    return $ pred
 
 
 ----provePred :: Expr -> IO SBV.ThmResult
@@ -99,27 +110,19 @@ test = do
 test2 :: IO ()
 test2 = do
   p <- prove $ do
-    a <- newArray "a" Nothing :: Symbolic (SArray Integer Integer)
-    j <- sInteger "j"
-    i <- sInteger "i"
-    n <- sInteger "n"
-    r <- sInteger "r"
-    f1 <- (forAll_ (\(x :: SInteger) -> j .< x &&& x .< i 
-              ==>
-            readArray a r .<= readArray a x))
-    f2 <- (forAll_ (\(x :: SInteger) -> j .<= x &&& x .< n ==>
-                      readArray a r .<= readArray a x))
-    min <- sInteger "min"
-    return $ 
-        ((j .< n &&& j .<= i &&& j .< r &&&
-          (j .== i ==> r .== i) &&&
-          (j .<= i ==> r .< i) &&&
-          min .== readArray a r &&&
-          f1 &&& (i .>= n)))
-        ==> 
-        f2
+    f1 <- forAll ["x"] (\(x :: SInteger) -> x .> 0 ==> 5 .< x)
+    f2 <- forAll ["y"] (\(y :: SInteger) -> y .> 0 ==> 5 .< y)
+    return $ f1 ==> f2
   print p
 
+test3 :: IO ()
+test3 = do
+  p <- prove $ do
+    a <- newArray "a" Nothing :: Symbolic (SArray Integer Integer)
+    x <- forall "x" :: Symbolic SInteger
+    y <- forall "y" :: Symbolic SInteger
+    return $ (x .> 0 ==> readArray a 0 .< x) ==> (y .> 0 ==> readArray a 0 .< y)
+  print p
 
 mkPred :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Predicate
 mkPred vars arr (Equal e1 e2)  = do
@@ -155,8 +158,11 @@ mkPred vars arr (Impl e1 e2)   = do
   p2 <- mkPred vars arr e2
   return $ p1 ==> p2
 mkPred vars arr (ForAll s e)   = do
-  --s1 <- forall s :: Symbolic SInteger
-  mkPred vars arr e
+  s' <- forall s :: Symbolic SInteger
+  mkPred (M.insert s s' vars) arr e
+mkPred vars arr (Exists s e)   = do
+  s' <- exists s :: Symbolic SInteger
+  mkPred (M.insert s s' vars) arr e
 mkPred vars arr True_ = return true
 mkPred vars arr _ = error "Should not occur"
 
@@ -170,51 +176,6 @@ mkSymEq vars arr (Name s) =
 mkSymEq vars arr expr = do
   sInt <- mkSymInt vars arr expr
   return $ Left sInt
-
-
-calcExpr :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Expr ->  (SInteger -> SInteger -> SInteger) -> Symbolic Expr
-calcExpr vars arr (Plus e1 (Lit e2)) q op = do
-  preCalc  <- mkInt vars arr op q e1
-  postCalc <- mkInt vars arr (+) (Lit preCalc) (Lit e2)
-  return $ Lit postCalc
-calcExpr vars arr (Plus e1 e2) q op = do
-  preCalc <- mkInt vars arr op q e1
-  calcExpr vars arr e2 (Lit preCalc) (+)
-calcExpr vars arr (Minus e1 (Lit e2)) q op = do
-  preCalc <- mkInt vars arr op q e1
-  postCalc <- mkInt vars arr (-) (Lit preCalc) (Lit e2)
-  return $ Lit postCalc
-calcExpr vars arr (Minus e1 e2) q op = do
-  preCalc <- mkInt vars arr op q e1
-  calcExpr vars arr e2 (Lit preCalc) (-)
-calcExpr vars arr (Lit e1) q _ = return $ Lit e1
-calcExpr vars arr (Name e1) q _ = return $ Name e1
-
-
-
---mkSymInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic SInteger
---mkSymInt vars arr (Minus e1 e2@(Lit x)) = do
---    mkInt vars arr (-) e1 e2
---mkSymInt vars arr (Minus e1 e2@(Name x)) = do
---    mkInt vars arr (-) e1 e2
---mkSymInt vars arr (Minus e1 e2) = do
---    Lit preCalc <- calcExpr vars arr e2 e1 (-)
---    return preCalc
---mkSymInt vars arr (Plus e1 e2@(Lit x)) = do
---    mkInt vars arr (-) e1 e2
---mkSymInt vars arr (Plus e1 e2@(Name x)) = do
---    mkInt vars arr (-) e1 e2
---mkSymInt vars arr (Plus e1 e2) = do
---    Lit preCalc <- calcExpr vars arr e2 e1 (+)
---    return preCalc
---mkSymInt vars arr (Lit i) = return i
---mkSymInt vars arr (Name s) = return $ fromJust $ M.lookup s vars
---mkSymInt vars arr (Repby (Name s) (Lit index)) = return $ readArray (fromJust $ M.lookup s arr) index
---mkSymInt vars arr (Repby (Name s) (Name index))  = return $ readArray (fromJust $ M.lookup s arr) (fromJust $ M.lookup index vars)
---mkSymInt vars arr (Repby (Name s) index) = do
---                  index' <- mkSymInt vars arr index 
---                  return $ readArray (fromJust $ M.lookup s arr) index'
---mkSymInt vars arr expr = error $ (show expr) ++ "hola"
 
 
 mkSymInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic SInteger
@@ -259,31 +220,6 @@ mkInt vars arr op e1 e2 = do
   s1 <- mkSymInt vars arr e1
   s2 <- mkSymInt vars arr e2
   return $ s1 `op` s2
-
-{-collectVars :: Expr -> S.Set String
-collectVars True_ = S.empty
-collectVars (Lit i) = S.empty
-collectVars (Name s) = S.singleton s
-collectVars (Minus e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (Plus e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (Equal e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (Lower e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (LowerE e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (And e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (Or e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (Not e) = collectVars e
-collectVars (Impl e1 e2) = S.union (collectVars e1) (collectVars e2)
-collectVars (ForAll s e) = S.union (S.singleton s) (collectVars e)
-collectVars (Repby (Name e1) (Name e2)) = S.union (S.singleton e1) (S.singleton e2)
-collectVars (Repby (Name s) i) = S.union (S.singleton s) (collectVars i)
-collectVars expr = error $ "Could not identify: " ++ show expr-}
-
---Check the type of the var
-{-varType :: [String] -> [String] -> String -> Maybe Ty
-varType var arr s
-    | elem s var = Just T_Integer
-    | elem s arr = Just T_Array
-    | otherwise = Nothing-}
 
 nameOf :: Var -> String
 nameOf (Int s) = s

@@ -107,6 +107,7 @@ sem_Body_Nil =
 data Expr = Lit (SInteger)
           | Name (String)
           | ForAll (String) (Expr)
+          | Exists (String) (Expr)
           | Minus (Expr) (Expr)
           | Plus (Expr) (Expr)
           | Equal (Expr) (Expr)
@@ -128,6 +129,8 @@ sem_Expr (Name _var) =
     (sem_Expr_Name _var)
 sem_Expr (ForAll _var _expr) =
     (sem_Expr_ForAll _var (sem_Expr _expr))
+sem_Expr (Exists _var _expr) =
+    (sem_Expr_Exists _var (sem_Expr _expr))
 sem_Expr (Minus _expr1 _expr2) =
     (sem_Expr_Minus (sem_Expr _expr1) (sem_Expr _expr2))
 sem_Expr (Plus _expr1 _expr2) =
@@ -169,22 +172,22 @@ sem_Expr_Lit i_ =
          _lhsOallVars =
              ({-# LINE 82 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 173 "SyntaxTransformer.hs" #-}
+              {-# LINE 176 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 83 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 178 "SyntaxTransformer.hs" #-}
+              {-# LINE 181 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Lit i_
-              {-# LINE 183 "SyntaxTransformer.hs" #-}
+              {-# LINE 186 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 188 "SyntaxTransformer.hs" #-}
+              {-# LINE 191 "SyntaxTransformer.hs" #-}
               )
      in  ( _lhsOallRefs,_lhsOallVars,_lhsOcopy))
 sem_Expr_Name :: String ->
@@ -196,22 +199,22 @@ sem_Expr_Name var_ =
          _lhsOallVars =
              ({-# LINE 84 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 200 "SyntaxTransformer.hs" #-}
+              {-# LINE 203 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 85 "SyntaxTransformer.ag" #-}
               S.singleton var_
-              {-# LINE 205 "SyntaxTransformer.hs" #-}
+              {-# LINE 208 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Name var_
-              {-# LINE 210 "SyntaxTransformer.hs" #-}
+              {-# LINE 213 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 215 "SyntaxTransformer.hs" #-}
+              {-# LINE 218 "SyntaxTransformer.hs" #-}
               )
      in  ( _lhsOallRefs,_lhsOallVars,_lhsOcopy))
 sem_Expr_ForAll :: String ->
@@ -227,22 +230,55 @@ sem_Expr_ForAll var_ expr_ =
          _lhsOallVars =
              ({-# LINE 86 "SyntaxTransformer.ag" #-}
               S.union (S.singleton (Univ var_)) _exprIallVars
-              {-# LINE 231 "SyntaxTransformer.hs" #-}
+              {-# LINE 234 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 87 "SyntaxTransformer.ag" #-}
               _exprIallRefs
-              {-# LINE 236 "SyntaxTransformer.hs" #-}
+              {-# LINE 239 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               ForAll var_ _exprIcopy
-              {-# LINE 241 "SyntaxTransformer.hs" #-}
+              {-# LINE 244 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 246 "SyntaxTransformer.hs" #-}
+              {-# LINE 249 "SyntaxTransformer.hs" #-}
+              )
+         ( _exprIallRefs,_exprIallVars,_exprIcopy) =
+             expr_
+     in  ( _lhsOallRefs,_lhsOallVars,_lhsOcopy))
+sem_Expr_Exists :: String ->
+                   T_Expr ->
+                   T_Expr
+sem_Expr_Exists var_ expr_ =
+    (let _lhsOcopy :: Expr
+         _lhsOallRefs :: (S.Set String)
+         _lhsOallVars :: (S.Set Var)
+         _exprIallRefs :: (S.Set String)
+         _exprIallVars :: (S.Set Var)
+         _exprIcopy :: Expr
+         _copy =
+             ({-# LINE 43 "SyntaxTransformer.ag" #-}
+              Exists var_ _exprIcopy
+              {-# LINE 267 "SyntaxTransformer.hs" #-}
+              )
+         _lhsOcopy =
+             ({-# LINE 43 "SyntaxTransformer.ag" #-}
+              _copy
+              {-# LINE 272 "SyntaxTransformer.hs" #-}
+              )
+         _lhsOallRefs =
+             ({-# LINE 46 "SyntaxTransformer.ag" #-}
+              _exprIallRefs
+              {-# LINE 277 "SyntaxTransformer.hs" #-}
+              )
+         _lhsOallVars =
+             ({-# LINE 42 "SyntaxTransformer.ag" #-}
+              _exprIallVars
+              {-# LINE 282 "SyntaxTransformer.hs" #-}
               )
          ( _exprIallRefs,_exprIallVars,_exprIcopy) =
              expr_
@@ -263,22 +299,22 @@ sem_Expr_Minus expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 88 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 267 "SyntaxTransformer.hs" #-}
+              {-# LINE 303 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 89 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 272 "SyntaxTransformer.hs" #-}
+              {-# LINE 308 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Minus _expr1Icopy _expr2Icopy
-              {-# LINE 277 "SyntaxTransformer.hs" #-}
+              {-# LINE 313 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 282 "SyntaxTransformer.hs" #-}
+              {-# LINE 318 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -301,22 +337,22 @@ sem_Expr_Plus expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 90 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 305 "SyntaxTransformer.hs" #-}
+              {-# LINE 341 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 91 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 310 "SyntaxTransformer.hs" #-}
+              {-# LINE 346 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Plus _expr1Icopy _expr2Icopy
-              {-# LINE 315 "SyntaxTransformer.hs" #-}
+              {-# LINE 351 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 320 "SyntaxTransformer.hs" #-}
+              {-# LINE 356 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -339,22 +375,22 @@ sem_Expr_Equal expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 92 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 343 "SyntaxTransformer.hs" #-}
+              {-# LINE 379 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 93 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 348 "SyntaxTransformer.hs" #-}
+              {-# LINE 384 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Equal _expr1Icopy _expr2Icopy
-              {-# LINE 353 "SyntaxTransformer.hs" #-}
+              {-# LINE 389 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 358 "SyntaxTransformer.hs" #-}
+              {-# LINE 394 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -377,22 +413,22 @@ sem_Expr_Lower expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 94 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 381 "SyntaxTransformer.hs" #-}
+              {-# LINE 417 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 95 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 386 "SyntaxTransformer.hs" #-}
+              {-# LINE 422 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Lower _expr1Icopy _expr2Icopy
-              {-# LINE 391 "SyntaxTransformer.hs" #-}
+              {-# LINE 427 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 396 "SyntaxTransformer.hs" #-}
+              {-# LINE 432 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -415,22 +451,22 @@ sem_Expr_LowerE expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 96 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 419 "SyntaxTransformer.hs" #-}
+              {-# LINE 455 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 97 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 424 "SyntaxTransformer.hs" #-}
+              {-# LINE 460 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               LowerE _expr1Icopy _expr2Icopy
-              {-# LINE 429 "SyntaxTransformer.hs" #-}
+              {-# LINE 465 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 434 "SyntaxTransformer.hs" #-}
+              {-# LINE 470 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -453,22 +489,22 @@ sem_Expr_And expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 98 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 457 "SyntaxTransformer.hs" #-}
+              {-# LINE 493 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 99 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 462 "SyntaxTransformer.hs" #-}
+              {-# LINE 498 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               And _expr1Icopy _expr2Icopy
-              {-# LINE 467 "SyntaxTransformer.hs" #-}
+              {-# LINE 503 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 472 "SyntaxTransformer.hs" #-}
+              {-# LINE 508 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -491,22 +527,22 @@ sem_Expr_Or expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 100 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 495 "SyntaxTransformer.hs" #-}
+              {-# LINE 531 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 101 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 500 "SyntaxTransformer.hs" #-}
+              {-# LINE 536 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Or _expr1Icopy _expr2Icopy
-              {-# LINE 505 "SyntaxTransformer.hs" #-}
+              {-# LINE 541 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 510 "SyntaxTransformer.hs" #-}
+              {-# LINE 546 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -529,22 +565,22 @@ sem_Expr_Impl expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 102 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 533 "SyntaxTransformer.hs" #-}
+              {-# LINE 569 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 103 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 538 "SyntaxTransformer.hs" #-}
+              {-# LINE 574 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Impl _expr1Icopy _expr2Icopy
-              {-# LINE 543 "SyntaxTransformer.hs" #-}
+              {-# LINE 579 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 548 "SyntaxTransformer.hs" #-}
+              {-# LINE 584 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -563,22 +599,22 @@ sem_Expr_Not expr_ =
          _lhsOallVars =
              ({-# LINE 106 "SyntaxTransformer.ag" #-}
               _exprIallVars
-              {-# LINE 567 "SyntaxTransformer.hs" #-}
+              {-# LINE 603 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 107 "SyntaxTransformer.ag" #-}
               _exprIallRefs
-              {-# LINE 572 "SyntaxTransformer.hs" #-}
+              {-# LINE 608 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Not _exprIcopy
-              {-# LINE 577 "SyntaxTransformer.hs" #-}
+              {-# LINE 613 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 582 "SyntaxTransformer.hs" #-}
+              {-# LINE 618 "SyntaxTransformer.hs" #-}
               )
          ( _exprIallRefs,_exprIallVars,_exprIcopy) =
              expr_
@@ -599,22 +635,22 @@ sem_Expr_Repby expr1_ expr2_ =
          _lhsOallVars =
              ({-# LINE 104 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 603 "SyntaxTransformer.hs" #-}
+              {-# LINE 639 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 105 "SyntaxTransformer.ag" #-}
               S.union _expr1IallRefs _expr2IallRefs
-              {-# LINE 608 "SyntaxTransformer.hs" #-}
+              {-# LINE 644 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Repby _expr1Icopy _expr2Icopy
-              {-# LINE 613 "SyntaxTransformer.hs" #-}
+              {-# LINE 649 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 618 "SyntaxTransformer.hs" #-}
+              {-# LINE 654 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -629,22 +665,22 @@ sem_Expr_True_ =
          _lhsOallVars =
              ({-# LINE 108 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 633 "SyntaxTransformer.hs" #-}
+              {-# LINE 669 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 109 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 638 "SyntaxTransformer.hs" #-}
+              {-# LINE 674 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               True_
-              {-# LINE 643 "SyntaxTransformer.hs" #-}
+              {-# LINE 679 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 648 "SyntaxTransformer.hs" #-}
+              {-# LINE 684 "SyntaxTransformer.hs" #-}
               )
      in  ( _lhsOallRefs,_lhsOallVars,_lhsOcopy))
 -- Exprs -------------------------------------------------------
@@ -680,22 +716,22 @@ sem_Exprs_Cons hd_ tl_ =
          _lhsOallVars =
              ({-# LINE 112 "SyntaxTransformer.ag" #-}
               S.union _hdIallVars _tlIallVars
-              {-# LINE 684 "SyntaxTransformer.hs" #-}
+              {-# LINE 720 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 113 "SyntaxTransformer.ag" #-}
               S.union _hdIallRefs _tlIallRefs
-              {-# LINE 689 "SyntaxTransformer.hs" #-}
+              {-# LINE 725 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               (:) _hdIcopy _tlIcopy
-              {-# LINE 694 "SyntaxTransformer.hs" #-}
+              {-# LINE 730 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 699 "SyntaxTransformer.hs" #-}
+              {-# LINE 735 "SyntaxTransformer.hs" #-}
               )
          ( _hdIallRefs,_hdIallVars,_hdIcopy) =
              hd_
@@ -710,22 +746,22 @@ sem_Exprs_Nil =
          _lhsOallVars =
              ({-# LINE 114 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 714 "SyntaxTransformer.hs" #-}
+              {-# LINE 750 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 115 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 719 "SyntaxTransformer.hs" #-}
+              {-# LINE 755 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               []
-              {-# LINE 724 "SyntaxTransformer.hs" #-}
+              {-# LINE 760 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 729 "SyntaxTransformer.hs" #-}
+              {-# LINE 765 "SyntaxTransformer.hs" #-}
               )
      in  ( _lhsOallRefs,_lhsOallVars,_lhsOcopy))
 -- ProgramInfo -------------------------------------------------
@@ -812,22 +848,22 @@ sem_Stmt_Vars vars_ body_ =
          _lhsOallProgs =
              ({-# LINE 52 "SyntaxTransformer.ag" #-}
               _bodyIallProgs
-              {-# LINE 816 "SyntaxTransformer.hs" #-}
+              {-# LINE 852 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 53 "SyntaxTransformer.ag" #-}
               S.union (S.fromList vars_) _bodyIallVars
-              {-# LINE 821 "SyntaxTransformer.hs" #-}
+              {-# LINE 857 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Vars vars_ _bodyIcopy
-              {-# LINE 826 "SyntaxTransformer.hs" #-}
+              {-# LINE 862 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 831 "SyntaxTransformer.hs" #-}
+              {-# LINE 867 "SyntaxTransformer.hs" #-}
               )
          ( _bodyIallProgs,_bodyIallVars,_bodyIcopy) =
              body_
@@ -847,22 +883,22 @@ sem_Stmt_Prog name_ params_ results_ body_ =
          _lhsOallProgs =
              ({-# LINE 54 "SyntaxTransformer.ag" #-}
               M.singleton name_ (params_, results_, _bodyIcopy)
-              {-# LINE 851 "SyntaxTransformer.hs" #-}
+              {-# LINE 887 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 55 "SyntaxTransformer.ag" #-}
               S.union (S.fromList (params_ ++ results_)) _bodyIallVars
-              {-# LINE 856 "SyntaxTransformer.hs" #-}
+              {-# LINE 892 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Prog name_ params_ results_ _bodyIcopy
-              {-# LINE 861 "SyntaxTransformer.hs" #-}
+              {-# LINE 897 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 866 "SyntaxTransformer.hs" #-}
+              {-# LINE 902 "SyntaxTransformer.hs" #-}
               )
          ( _bodyIallProgs,_bodyIallVars,_bodyIcopy) =
              body_
@@ -884,22 +920,22 @@ sem_Stmt_PCall name_ args_ res_ =
          _lhsOallProgs =
              ({-# LINE 56 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 888 "SyntaxTransformer.hs" #-}
+              {-# LINE 924 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 57 "SyntaxTransformer.ag" #-}
               S.union _argsIallVars _resIallVars
-              {-# LINE 893 "SyntaxTransformer.hs" #-}
+              {-# LINE 929 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               PCall name_ _argsIcopy _resIcopy
-              {-# LINE 898 "SyntaxTransformer.hs" #-}
+              {-# LINE 934 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 903 "SyntaxTransformer.hs" #-}
+              {-# LINE 939 "SyntaxTransformer.hs" #-}
               )
          ( _argsIallRefs,_argsIallVars,_argsIcopy) =
              args_
@@ -918,22 +954,22 @@ sem_Stmt_Pre expr_ =
          _lhsOallProgs =
              ({-# LINE 58 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 922 "SyntaxTransformer.hs" #-}
+              {-# LINE 958 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 59 "SyntaxTransformer.ag" #-}
               _exprIallVars
-              {-# LINE 927 "SyntaxTransformer.hs" #-}
+              {-# LINE 963 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Pre _exprIcopy
-              {-# LINE 932 "SyntaxTransformer.hs" #-}
+              {-# LINE 968 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 937 "SyntaxTransformer.hs" #-}
+              {-# LINE 973 "SyntaxTransformer.hs" #-}
               )
          ( _exprIallRefs,_exprIallVars,_exprIcopy) =
              expr_
@@ -950,22 +986,22 @@ sem_Stmt_Post expr_ =
          _lhsOallProgs =
              ({-# LINE 60 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 954 "SyntaxTransformer.hs" #-}
+              {-# LINE 990 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 61 "SyntaxTransformer.ag" #-}
               _exprIallVars
-              {-# LINE 959 "SyntaxTransformer.hs" #-}
+              {-# LINE 995 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Post _exprIcopy
-              {-# LINE 964 "SyntaxTransformer.hs" #-}
+              {-# LINE 1000 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 969 "SyntaxTransformer.hs" #-}
+              {-# LINE 1005 "SyntaxTransformer.hs" #-}
               )
          ( _exprIallRefs,_exprIallVars,_exprIcopy) =
              expr_
@@ -986,22 +1022,22 @@ sem_Stmt_Inv expr_ stmt_ =
          _lhsOallProgs =
              ({-# LINE 62 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 990 "SyntaxTransformer.hs" #-}
+              {-# LINE 1026 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 63 "SyntaxTransformer.ag" #-}
               S.union _exprIallVars _stmtIallVars
-              {-# LINE 995 "SyntaxTransformer.hs" #-}
+              {-# LINE 1031 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Inv _exprIcopy _stmtIcopy
-              {-# LINE 1000 "SyntaxTransformer.hs" #-}
+              {-# LINE 1036 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 1005 "SyntaxTransformer.hs" #-}
+              {-# LINE 1041 "SyntaxTransformer.hs" #-}
               )
          ( _exprIallRefs,_exprIallVars,_exprIcopy) =
              expr_
@@ -1024,22 +1060,22 @@ sem_Stmt_While expr_ body_ =
          _lhsOallProgs =
              ({-# LINE 64 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 1028 "SyntaxTransformer.hs" #-}
+              {-# LINE 1064 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 65 "SyntaxTransformer.ag" #-}
               S.union _exprIallVars _bodyIallVars
-              {-# LINE 1033 "SyntaxTransformer.hs" #-}
+              {-# LINE 1069 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               While _exprIcopy _bodyIcopy
-              {-# LINE 1038 "SyntaxTransformer.hs" #-}
+              {-# LINE 1074 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 1043 "SyntaxTransformer.hs" #-}
+              {-# LINE 1079 "SyntaxTransformer.hs" #-}
               )
          ( _exprIallRefs,_exprIallVars,_exprIcopy) =
              expr_
@@ -1066,22 +1102,22 @@ sem_Stmt_If expr_ left_ right_ =
          _lhsOallProgs =
              ({-# LINE 66 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 1070 "SyntaxTransformer.hs" #-}
+              {-# LINE 1106 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 67 "SyntaxTransformer.ag" #-}
               S.union (S.union _exprIallVars _leftIallVars) _rightIallVars
-              {-# LINE 1075 "SyntaxTransformer.hs" #-}
+              {-# LINE 1111 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               If _exprIcopy _leftIcopy _rightIcopy
-              {-# LINE 1080 "SyntaxTransformer.hs" #-}
+              {-# LINE 1116 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 1085 "SyntaxTransformer.hs" #-}
+              {-# LINE 1121 "SyntaxTransformer.hs" #-}
               )
          ( _exprIallRefs,_exprIallVars,_exprIcopy) =
              expr_
@@ -1106,22 +1142,22 @@ sem_Stmt_Assign expr1_ expr2_ =
          _lhsOallProgs =
              ({-# LINE 68 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 1110 "SyntaxTransformer.hs" #-}
+              {-# LINE 1146 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 69 "SyntaxTransformer.ag" #-}
               S.union _expr1IallVars _expr2IallVars
-              {-# LINE 1115 "SyntaxTransformer.hs" #-}
+              {-# LINE 1151 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Assign _expr1Icopy _expr2Icopy
-              {-# LINE 1120 "SyntaxTransformer.hs" #-}
+              {-# LINE 1156 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 1125 "SyntaxTransformer.hs" #-}
+              {-# LINE 1161 "SyntaxTransformer.hs" #-}
               )
          ( _expr1IallRefs,_expr1IallVars,_expr1Icopy) =
              expr1_
@@ -1144,22 +1180,22 @@ sem_Stmt_Sim left_ right_ =
          _lhsOallProgs =
              ({-# LINE 70 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 1148 "SyntaxTransformer.hs" #-}
+              {-# LINE 1184 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 71 "SyntaxTransformer.ag" #-}
               S.union _leftIallVars _rightIallVars
-              {-# LINE 1153 "SyntaxTransformer.hs" #-}
+              {-# LINE 1189 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Sim _leftIcopy _rightIcopy
-              {-# LINE 1158 "SyntaxTransformer.hs" #-}
+              {-# LINE 1194 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 1163 "SyntaxTransformer.hs" #-}
+              {-# LINE 1199 "SyntaxTransformer.hs" #-}
               )
          ( _leftIallRefs,_leftIallVars,_leftIcopy) =
              left_
@@ -1174,22 +1210,22 @@ sem_Stmt_Skip =
          _lhsOallProgs =
              ({-# LINE 72 "SyntaxTransformer.ag" #-}
               M.empty
-              {-# LINE 1178 "SyntaxTransformer.hs" #-}
+              {-# LINE 1214 "SyntaxTransformer.hs" #-}
               )
          _lhsOallVars =
              ({-# LINE 73 "SyntaxTransformer.ag" #-}
               S.empty
-              {-# LINE 1183 "SyntaxTransformer.hs" #-}
+              {-# LINE 1219 "SyntaxTransformer.hs" #-}
               )
          _copy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               Skip
-              {-# LINE 1188 "SyntaxTransformer.hs" #-}
+              {-# LINE 1224 "SyntaxTransformer.hs" #-}
               )
          _lhsOcopy =
              ({-# LINE 43 "SyntaxTransformer.ag" #-}
               _copy
-              {-# LINE 1193 "SyntaxTransformer.hs" #-}
+              {-# LINE 1229 "SyntaxTransformer.hs" #-}
               )
      in  ( _lhsOallProgs,_lhsOallVars,_lhsOcopy))
 -- Top ---------------------------------------------------------
@@ -1225,17 +1261,17 @@ sem_Top_Top stmt_ expr_ =
          _lhsOallVars =
              ({-# LINE 37 "SyntaxTransformer.ag" #-}
               _stmtIallVars
-              {-# LINE 1229 "SyntaxTransformer.hs" #-}
+              {-# LINE 1265 "SyntaxTransformer.hs" #-}
               )
          _lhsOallProgs =
              ({-# LINE 38 "SyntaxTransformer.ag" #-}
               _stmtIallProgs
-              {-# LINE 1234 "SyntaxTransformer.hs" #-}
+              {-# LINE 1270 "SyntaxTransformer.hs" #-}
               )
          _lhsOallRefs =
              ({-# LINE 39 "SyntaxTransformer.ag" #-}
               _exprIallRefs
-              {-# LINE 1239 "SyntaxTransformer.hs" #-}
+              {-# LINE 1275 "SyntaxTransformer.hs" #-}
               )
          ( _stmtIallProgs,_stmtIallVars,_stmtIcopy) =
              stmt_
@@ -1246,6 +1282,7 @@ sem_Top_Top stmt_ expr_ =
 data Var = Int (String)
          | Array (String)
          | Univ (String)
+         | Exis (String)
          deriving ( Eq,Ord,Show)
 -- cata
 sem_Var :: Var ->
@@ -1256,6 +1293,8 @@ sem_Var (Array _s) =
     (sem_Var_Array _s)
 sem_Var (Univ _s) =
     (sem_Var_Univ _s)
+sem_Var (Exis _s) =
+    (sem_Var_Exis _s)
 -- semantic domain
 type T_Var = ( )
 data Inh_Var = Inh_Var {}
@@ -1279,5 +1318,10 @@ sem_Var_Array s_ =
 sem_Var_Univ :: String ->
                 T_Var
 sem_Var_Univ s_ =
+    (let
+     in  ( ))
+sem_Var_Exis :: String ->
+                T_Var
+sem_Var_Exis s_ =
     (let
      in  ( ))
