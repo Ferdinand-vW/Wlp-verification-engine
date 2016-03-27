@@ -37,8 +37,8 @@ data Var
   | Univ s :: String
   | Exis s :: String
 
-deriving Stmt : Show
 deriving Expr : Show
+deriving Stmt : Show
 deriving Var : Show
 deriving Stmt : Eq
 deriving Expr : Eq

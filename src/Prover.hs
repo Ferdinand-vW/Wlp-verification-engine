@@ -13,7 +13,6 @@ import Control.Monad
 import PrettyPrint
 import SyntaxTransformer
 import Transformer(toPrenexNF, mkFreshExpr)
-
 --proveImpl :: Expr -> Expr -> IO SBV.ThmResult
 proveImpl vars e1 e2 = do
   let varMap = M.fromList $ zip (map nameOf vars) vars

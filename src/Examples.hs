@@ -15,6 +15,15 @@ loopExample = var [int "y"]
 --sample :: Expr
 sample = i 3 `minus` i 1 `minus` i 3
 
+plusExample :: Stmt
+plusExample = 
+ var [int "a", int "b"]
+    [
+      assume (i 1 .== ref "b"),
+      ref "a" .= ref "b" `minus` i 1,
+      assert (ref "a" .== i 0)
+    ]
+
 
 example :: Stmt
 example = var [array "a", int "i", int "j", int "k"]
@@ -155,7 +164,7 @@ swap'' = var [array "a", int "i", int "j", int "tmp", int "c", int "b"]
             ]
 
 simCode :: Stmt
-simCode = var [array "a", array "b"] 
+simCode = var [int "a", int "b"] 
             [assume ((ref "a" .== ref "b")),
                 ref "b" .= i 6,
                 (sim [ref "a",ref "b"] [ref "b" `minus` i 1,i 5]),

@@ -66,19 +66,19 @@ mkFreshStmt n varMap progMap (Sim vars1 vars2) =
   let (n1,expr1) = mkFreshExprs n varMap vars1
       (n2,expr2) = mkFreshExprs n1 varMap vars2
       varsList = foldr (\x y -> name x : y) [] vars1
-      varTypes = foldr (\x y -> varType x : y) [] vars1
+      exprToTuples = foldr (\x y -> exprToTuple x : y) [] vars1
       dupVars = filter (\x -> M.member x varMap) varsList
       oldVars = [fromJust $ M.lookup x varMap | x <- dupVars]
       newVars = map (++ show n) dupVars
-      newVarsLeft = M.fromList $ map (\(x,y) -> (x ++ show n,y)) varTypes
-      newVarTypesRight = [(fromJust $ M.lookup x varMap,y) | (x,y) <- varTypes , x `M.member` varMap]
+      newVarsLeft = M.fromList $ map (\(x,y) -> (x ++ show n,y)) exprToTuples
+      newexprToTuplesRight = [(fromJust $ M.lookup x varMap,y) | (x,y) <- exprToTuples , x `M.member` varMap]
       freshMap = M.fromList $ zip oldVars newVars
       modRight = foldr (\x y -> (modifyExpr x varMap freshMap) : y) [] vars2
-      headStmp = foldr (\(x,y) z -> (Assign (correctType x (fromJust $ M.lookup x newVarsLeft)) 
-                                            (correctType y $ fromJust $ M.lookup y (M.fromList newVarTypesRight))) : z) [] $ zip newVars oldVars
-      bodyStmp = foldr (\(x,y) z -> (Assign x y): z ) [] $ zip expr1 modRight
-      transformed = Vars [] $ headStmp ++ bodyStmp    
-  in (n2,transformed)
+      newVarsMap = foldr (\x y -> toVar x : y) [] $ M.toList newVarsLeft
+      headStmp = foldr (\(x,y) z -> (Assign (Name x) (Name y)) : z) [] $ zip newVars oldVars
+      bodyStmp = foldr (\(x,y) z -> (Assign x (correctNameBody y varMap)): z ) [] $ zip expr1 modRight
+      transformed = Vars newVarsMap $ headStmp ++ bodyStmp  
+  in  (n2,transformed)
 mkFreshStmt n varMap progMap (Pre expr) =
   let (n1,expr1) = mkFreshExpr n varMap expr
   in (n1,Pre expr1)
@@ -176,9 +176,13 @@ name :: Expr -> String
 name (Name s) = s
 name (Repby (Name s) _) = s
 
-varType :: Expr -> (String,Maybe Expr)
-varType (Name s) = (s, Nothing)
-varType (Repby (Name s) index) = (s, Just index)
+exprToTuple :: Expr -> (String,Maybe Expr)
+exprToTuple (Name s) = (s, Nothing)
+exprToTuple (Repby (Name s) index) = (s, Just index)
+
+toVar :: (String,Maybe Expr) -> Var
+toVar (s, Nothing) = Int s
+toVar (s, x) = Array s 
 
 modifyExpr :: Expr -> M.Map String String -> M.Map String String -> Expr
 modifyExpr (Lit i)        old new = Lit i
@@ -193,15 +197,23 @@ modifyExpr (And e1 e2)    old new = And    (modifyExpr e1 old new) (modifyExpr e
 modifyExpr (Or e1 e2)     old new = Or     (modifyExpr e1 old new) (modifyExpr e2 old new)
 modifyExpr (Not e1)       old new = Not    e1
 modifyExpr True_          old new = True_
-modifyExpr (Repby (Name s) index) old new = Repby (Name $ newVar s old new) index
+modifyExpr (Repby (Name s) index) old new = Repby (Name $ newVar s old new) (modifyExpr index old new)
 
 newVar :: String -> M.Map String String -> M.Map String String -> String
-newVar s old new | M.member s old = fromJust $ M.lookup (fromJust $ M.lookup s old) new
+newVar s old new | M.member s old = newVar' (fromJust $ M.lookup s old) new
                  | otherwise = s
+newVar' :: String -> M.Map String String -> String
+newVar' old new | M.member old new = fromJust $ M.lookup old new
+                | otherwise = old
 
-correctType :: String -> Maybe Expr -> Expr
-correctType s Nothing = Name s
-correctType s (Just i) = Repby (Name s) i
+--The correctNameBody is used in the body of the sim assignments.
+correctNameBody :: Expr -> M.Map String String -> Expr
+correctNameBody (Repby x (Name n)) vars | M.member n vars = Repby x (Name $ fromJust $ M.lookup n vars)
+                                        | otherwise = Repby x $ Name n
+correctNameBody (Name s) vars | M.member s vars = Name $ (fromJust $ M.lookup s vars)
+                              | otherwise = error "Something is wrong!"
+correctNameBody (Lit s) _ = Lit s
+correctNameBody s _ = s
 
 modifyName :: (String -> String) -> Var -> Var
 modifyName f (Int s)   = Int (f s)
