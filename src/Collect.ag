@@ -1,4 +1,4 @@
-module {SyntaxTransformer}
+module {Collect}
 {
 Stmt(..), Expr(..), Var(..), ProgramInfo(..), collectVars, collectPrograms, collectRefs
 }

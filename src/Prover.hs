@@ -11,7 +11,7 @@ import Data.SBV
 import Control.Monad
 
 import PrettyPrint
-import SyntaxTransformer
+import Collect
 import Transformer(toPrenexNF, mkFreshExpr)
 --proveImpl :: Expr -> Expr -> IO SBV.ThmResult
 proveImpl vars e1 e2 = do

@@ -1,6 +1,6 @@
 
 
--- UUAGC 0.9.52.1 (Grammar)
+-- UUAGC 0.9.52.1 (src/Grammar.ag)
 
 -- Body --------------------------------------------------------
 type Body = [Stmt]
@@ -33,6 +33,7 @@ sem_Body_Nil =
 data Expr = Lit (SInteger)
           | Name (String)
           | ForAll (String) (Expr)
+          | Exists (String) (Expr)
           | Minus (Expr) (Expr)
           | Plus (Expr) (Expr)
           | Equal (Expr) (Expr)
@@ -54,6 +55,8 @@ sem_Expr (Name _var) =
     (sem_Expr_Name _var)
 sem_Expr (ForAll _var _expr) =
     (sem_Expr_ForAll _var (sem_Expr _expr))
+sem_Expr (Exists _var _expr) =
+    (sem_Expr_Exists _var (sem_Expr _expr))
 sem_Expr (Minus _expr1 _expr2) =
     (sem_Expr_Minus (sem_Expr _expr1) (sem_Expr _expr2))
 sem_Expr (Plus _expr1 _expr2) =
@@ -100,6 +103,12 @@ sem_Expr_ForAll :: String ->
                    T_Expr ->
                    T_Expr
 sem_Expr_ForAll var_ expr_ =
+    (let
+     in  ( ))
+sem_Expr_Exists :: String ->
+                   T_Expr ->
+                   T_Expr
+sem_Expr_Exists var_ expr_ =
     (let
      in  ( ))
 sem_Expr_Minus :: T_Expr ->
@@ -310,6 +319,7 @@ sem_Stmt_Skip =
 data Var = Int (String)
          | Array (String)
          | Univ (String)
+         | Exis (String)
          deriving ( Eq,Ord,Show)
 -- cata
 sem_Var :: Var ->
@@ -320,6 +330,8 @@ sem_Var (Array _s) =
     (sem_Var_Array _s)
 sem_Var (Univ _s) =
     (sem_Var_Univ _s)
+sem_Var (Exis _s) =
+    (sem_Var_Exis _s)
 -- semantic domain
 type T_Var = ( )
 data Inh_Var = Inh_Var {}
@@ -343,5 +355,10 @@ sem_Var_Array s_ =
 sem_Var_Univ :: String ->
                 T_Var
 sem_Var_Univ s_ =
+    (let
+     in  ( ))
+sem_Var_Exis :: String ->
+                T_Var
+sem_Var_Exis s_ =
     (let
      in  ( ))

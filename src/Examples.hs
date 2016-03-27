@@ -1,6 +1,6 @@
 module Examples where
 
-import SyntaxTransformer
+import Collect
 import GCL
 import Transformer
 

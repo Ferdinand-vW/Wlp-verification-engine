@@ -8,7 +8,7 @@ import qualified Data.Maybe as MA
 import qualified Data.SBV as SBV
 
 import Data.SBV(modelExists)
-import SyntaxTransformer
+import Collect
 import Transformer
 import GCL
 import Prover
@@ -111,7 +111,12 @@ wlp mvar vars (While g s) q = do
 wlp mvar vars (Prog _ _ _ _) q = return ([],q)
 wlp mvar _ _ _ = error "Not supported by our wlp function"
 
-
+--In the loop reducation we try to calculate the fixpoint.
+--The first parameter is an int, which determines the amount of iterations.
+--The second parameters is the previous calculated post condition
+--It will try to implicate the previous calculated post condition with the current calculated post condition.
+--g stands for the condition
+--s is the body of the while
 loopReduction :: Int -> Expr -> Expr -> [Stmt] -> Expr -> MVar Char -> [Var] -> IO Expr
 loopReduction 0 e1 g s q mvar vars = do
   (_,w) <- foldWlp mvar vars e1 s

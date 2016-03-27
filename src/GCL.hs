@@ -1,6 +1,6 @@
 module GCL where
 
-import SyntaxTransformer
+import Collect
 
 import Data.SBV(SInteger)
 

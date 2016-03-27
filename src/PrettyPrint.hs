@@ -1,6 +1,6 @@
 module PrettyPrint where
 
-import SyntaxTransformer
+import Collect
 
 class PrettyPrint a where
   pp :: a -> String

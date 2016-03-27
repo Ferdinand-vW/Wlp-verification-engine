@@ -10,9 +10,11 @@ import qualified Data.SBV as SBV
 
 import PrettyPrint
 import Data.SBV(modelExists)
-import SyntaxTransformer
+import Collect
 import Control.Monad
 
+--The transform function will first collect information about vars,refs and program calls.
+--After the collection it will transform the code with mkFreshStmt. The 0 after mkFreshStmt is the intial value to introduce new variables.
 transform :: Stmt -> (Stmt, [Var])
 transform stmt =
   let vars = collectVars stmt
@@ -28,6 +30,7 @@ mkFreshStmts n varMap progMap stmts =
   foldr (\x (y,stmts') -> let (n',stmt) = mkFreshStmt y varMap progMap x
                           in (n',stmt : stmts')) (n,[]) stmts
 
+--
 mkFreshStmt :: Int -> M.Map String String -> M.Map String ([Var],[Var],[Stmt])-> Stmt -> (Int,Stmt)
 mkFreshStmt n varMap progMap (Vars xs stmts) =
   let dupVars = filter (\x -> M.member (nameOf x) varMap) xs

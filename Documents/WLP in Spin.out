@@ -1,0 +1,14 @@
+\BOOKMARK [1][-]{section.1}{Introduction}{}% 1
+\BOOKMARK [1][-]{section.2}{Implementation overview}{}% 2
+\BOOKMARK [1][-]{section.3}{Base implementation}{}% 3
+\BOOKMARK [2][-]{subsection.3.1}{Collection}{section.3}% 4
+\BOOKMARK [2][-]{subsection.3.2}{Transforming}{section.3}% 5
+\BOOKMARK [2][-]{subsection.3.3}{Verification}{section.3}% 6
+\BOOKMARK [2][-]{subsection.3.4}{Prover}{section.3}% 7
+\BOOKMARK [2][-]{subsection.3.5}{Example}{section.3}% 8
+\BOOKMARK [1][-]{section.4}{Simultaneous assignment}{}% 9
+\BOOKMARK [1][-]{section.5}{Array assignment}{}% 10
+\BOOKMARK [1][-]{section.6}{Program call}{}% 11
+\BOOKMARK [1][-]{section.7}{Loop reduction}{}% 12
+\BOOKMARK [1][-]{section.8}{Relevance work}{}% 13
+\BOOKMARK [1][-]{section.9}{Conclusion}{}% 14
