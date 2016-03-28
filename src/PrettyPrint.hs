@@ -1,33 +1,26 @@
 module PrettyPrint where
 
+
+import Data.List
 import Collect
 
 class PrettyPrint a where
   pp :: a -> String
 
 instance PrettyPrint Stmt where
-  pp (Vars vars body) = "Var" ++ show vars ++ (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" body)
+  pp (Vars vars body) = "Var" ++ show vars ++ "[\n" ++ (foldr (\x y -> "\t" ++ pp x ++ ",\n" ++ y) "" body) ++ "\n]\n"
   pp (Assign e1 e2) = pp e1 ++ " := " ++ pp e2
   pp Skip = "Skip"
   pp (Pre e1) = "Assume " ++ pp e1
   pp (Post e1) = "Assert " ++ pp e1
   pp (If g s1 s2) = "If (" ++ pp g ++ ") {\n\t" ++
-                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s1) ++ "}\n else {\n\t" ++
-                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s2) ++ "}"
-  pp (While g s) = "while (" ++ pp g ++ ")" ++ foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s
+                    (foldr (\x y -> "\t" ++ pp x ++ ",\n" ++ y) "" s1) ++ "}\n else {\n\t" ++
+                    (foldr (\x y -> "\t" ++ pp x ++ ",\n" ++ y) "" s2) ++ "}"
+  pp (While g s) = "while (" ++ pp g ++ ")" ++ foldr (\x y -> "\t" ++ pp x ++ ",\n" ++ y) "" s
   pp (Inv e s) = "inv (" ++ pp e ++ "): " ++ pp s
---data Stmt
---  | Vars     vars :: {[Var]}  body :: Body
---  | Prog    name :: String    params :: {[Var]} results :: {[Var]} body :: Body
---  | PCall   name :: String  args :: Exprs res :: Exprs
---  | Pre     expr :: Expr
---  | Post    expr :: Expr
---  | Inv     expr :: Expr      stmt :: Stmt
---  | While   expr :: Expr      body :: Body
---  | If      expr :: Expr      left :: Body    right :: Body
---  | Assign  expr1 :: Expr     expr2 :: Expr
---  | Sim     left :: Exprs      right :: Exprs
---  | Skip
+  pp (Sim e1 e2) = intercalate "," (map pp e1) ++ " := " ++ intercalate "," (map pp e2)
+  pp (Prog name inP outP body) = "Program " ++ name ++ " (" ++ intercalate "," (map pp inP) ++ ") (" ++
+                                   intercalate "," (map pp outP) ++ " )" ++ "{\n" ++ (concat $ map pp body) ++ "\n}\n"
 
 instance PrettyPrint Expr where
   pp (Lit i) = show i
@@ -46,32 +39,8 @@ instance PrettyPrint Expr where
   pp (Not e1) = "!(" ++ pp e1 ++ ")"
   pp True_ = "True"
 
-
---instance Show Stmt where
---  show (Vars vars body) = "Var" ++ show vars ++ (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" body)
---  show (Assign e1 e2) = pp e1 ++ " := " ++ pp e2
---  show Skip = "Skip"
---  show (Pre e1) = "Assume " ++ pp e1
---  show (Post e1) = "Assert " ++ pp e1
---  show (If g s1 s2) = "If (" ++ pp g ++ ") {\n\t" ++
---                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s1) ++ "}\n else {\n\t" ++
---                    (foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s2) ++ "}"
---  show (While g s) = "while (" ++ pp g ++ ")" ++ foldr (\x y -> "\t" ++ pp x ++ "\n" ++ y) "" s
---  show (Inv e s) = "inv (" ++ pp e ++ "): " ++ pp s
-
-
---instance Show Expr where
---  show (Lit i) = show i
---  show (Name s) = s
---  show (ForAll s e) = "ForAll " ++ s ++ "(" ++ pp e ++ ")"
---  show (Minus e1 e2) = pp e1 ++ " - " ++ pp e2
---  show (Plus e1 e2) = pp e1 ++ " + " ++ pp e2
---  show (Equal e1 e2) = pp e1 ++ " == " ++ pp e2
---  show (Lower e1 e2) = pp e1 ++ " < " ++ pp e2
---  show (LowerE e1 e2) = pp e1 ++ " <= " ++ pp e2
---  show (And e1 e2) = pp e1 ++ " && " ++ pp e2
---  show (Or e1 e2) = pp e1 ++ " || " ++ pp e2
---  show (Impl e1 e2) = "((" ++ pp e1 ++ ")" ++ " --> " ++ "(" ++ pp e2 ++ "))"
---  show (Repby e1 e2) = pp e1 ++ "[" ++ pp e2 ++ "]"
---  show (Not e1) = "!(" ++ pp e1 ++ ")"
---  show True_ = "True"
+instance PrettyPrint Var where
+  pp (Int i) = "Int " ++ i
+  pp (Array s) = "Array " ++ s
+  pp (Univ x) = x
+  pp (Exis x) = x

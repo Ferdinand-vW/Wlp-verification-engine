@@ -20,26 +20,27 @@ transform stmt =
   let vars = collectVars stmt
       progMap = collectPrograms stmt
       varsL = map nameOf $ S.toList vars
-      varMap = M.fromList $ zip varsL varsL
+      varMap = M.fromList $ zip varsL (S.toList vars)
       freshStmt = snd $ mkFreshStmt 0 varMap progMap stmt
   in (freshStmt, S.toList (collectVars freshStmt))
 
 
-mkFreshStmts :: Int -> M.Map String String -> M.Map String ([Var],[Var],[Stmt]) -> [Stmt] -> (Int,[Stmt])
+--Fold over the statements passing around the integer
+mkFreshStmts :: Int -> M.Map String Var -> M.Map String ([Var],[Var],[Stmt]) -> [Stmt] -> (Int,[Stmt])
 mkFreshStmts n varMap progMap stmts =
   foldr (\x (y,stmts') -> let (n',stmt) = mkFreshStmt y varMap progMap x
                           in (n',stmt : stmts')) (n,[]) stmts
 
---
-mkFreshStmt :: Int -> M.Map String String -> M.Map String ([Var],[Var],[Stmt])-> Stmt -> (Int,Stmt)
+--Find duplicate values, make them fresh and insert them into the map
+mkFreshStmt :: Int -> M.Map String Var -> M.Map String ([Var],[Var],[Stmt])-> Stmt -> (Int,Stmt)
 mkFreshStmt n varMap progMap (Vars xs stmts) =
   let dupVars = filter (\x -> M.member (nameOf x) varMap) xs
       freshVars = map (modifyName (++ show n)) dupVars
       remVars = xs L.\\ dupVars
-      newVarMap = M.union (M.fromList (zip (map nameOf dupVars) (map nameOf freshVars))) varMap
+      newVarMap = M.union (M.fromList (zip (map nameOf dupVars) freshVars)) varMap
       (n1,newStmts) = mkFreshStmts (n + 1) newVarMap progMap stmts
   in (n1, Vars (L.union remVars freshVars) newStmts)
-mkFreshStmt n varMap progMap (PCall name args vars) =
+mkFreshStmt n varMap progMap (PCall name args vars) = --For PCalls we have to make both the parameters and arguments fresh
   let (n1,expr1) = mkFreshExprs n varMap args
       (n2,expr2) = mkFreshExprs n1 varMap vars
       (prms,resv,body) = fromJust $ M.lookup name progMap
@@ -49,38 +50,36 @@ mkFreshStmt n varMap progMap (PCall name args vars) =
       freshResv = map (modifyName (++ show n)) dupResv
       remPrms = prms L.\\ dupPrms
       remResv = resv L.\\ dupResv
-      newVarMap = M.union (M.fromList (zip ((map nameOf dupPrms) ++ (map nameOf dupResv)) 
-                          ((map nameOf freshPrms) ++ (map nameOf freshResv)))) varMap
-      (n3,body1) = mkFreshStmts (n + 1) newVarMap progMap body
+      newVarMap = M.union (M.fromList ((zip (map nameOf dupPrms) freshPrms) ++ 
+                                       (zip (map nameOf dupResv) freshResv))) varMap
+      (n3,body1) = mkFreshStmts (n2 + 1) newVarMap progMap body
       allPrms = L.union remPrms freshPrms
       prmsName = map nameOf allPrms
       allResv = L.union remResv freshResv
       resvName = map nameOf allResv
       transformed = Vars (L.union allPrms allResv)
           (
-            map (\(x,y) -> Assign (Name x) y) (zip prmsName expr1)
-            ++
+            map (\(x,y) -> Assign (Name x) y) (zip prmsName expr1) --Technically no simultaneous assignment, but this is not necessary
+              ++
             body1
-            ++
+              ++
             map (\(x,y) -> Assign x (Name y)) (zip expr2 resvName)
           )
   in (n3,transformed)
 mkFreshStmt n varMap progMap (Sim vars1 vars2) =
   let (n1,expr1) = mkFreshExprs n varMap vars1
       (n2,expr2) = mkFreshExprs n1 varMap vars2
-      varsList = foldr (\x y -> name x : y) [] vars1
-      exprToTuples = foldr (\x y -> exprToTuple x : y) [] vars1
-      dupVars = filter (\x -> M.member x varMap) varsList
-      oldVars = [fromJust $ M.lookup x varMap | x <- dupVars]
-      newVars = map (++ show n) dupVars
-      newVarsLeft = M.fromList $ map (\(x,y) -> (x ++ show n,y)) exprToTuples
-      newexprToTuplesRight = [(fromJust $ M.lookup x varMap,y) | (x,y) <- exprToTuples , x `M.member` varMap]
-      freshMap = M.fromList $ zip oldVars newVars
-      modRight = foldr (\x y -> (modifyExpr x varMap freshMap) : y) [] vars2
-      newVarsMap = foldr (\x y -> toVar x : y) [] $ M.toList newVarsLeft
-      headStmp = foldr (\(x,y) z -> (Assign (Name x) (Name y)) : z) [] $ zip newVars oldVars
-      bodyStmp = foldr (\(x,y) z -> (Assign x (correctNameBody y varMap)): z ) [] $ zip expr1 modRight
-      transformed = Vars newVarsMap $ headStmp ++ bodyStmp  
+
+      dupVars = map (\x -> fromJust $ M.lookup (name x) varMap) vars1 --Make new fresh vars
+      dupVarsName = map nameOf dupVars
+      freshVars = map (\x -> modifyName (++ show n) x) dupVars
+      freshVarsName = map nameOf freshVars
+      newVarMap = M.union (M.fromList (zip dupVarsName freshVars)) varMap
+
+      headStmp = foldr (\(x,y) z -> (Assign (Name x) y : z)) [] $ zip freshVarsName expr1 --Assign the old values to the fresh vars
+      modRight = foldr (\x y -> (modifyExpr x varMap newVarMap) : y) [] expr2 --Replace old vars with fresh vars
+      bodyStmp = foldr (\(x,y) z -> (Assign x (correctNameBody y varMap)): z ) [] $ zip expr1 modRight --Do the assignments using the fresh vars
+      transformed = Vars freshVars $ headStmp ++ bodyStmp  
   in  (n2,transformed)
 mkFreshStmt n varMap progMap (Pre expr) =
   let (n1,expr1) = mkFreshExpr n varMap expr
@@ -107,32 +106,34 @@ mkFreshStmt n varMap progMap (Assign left right) =
   in (n2,Assign expr1 expr2)
 mkFreshStmt n varMap progMap stmt = (n,stmt)
 
-mkFreshExprs :: Int -> M.Map String String -> [Expr] -> (Int,[Expr])
+--Same, but with expressions
+mkFreshExprs :: Int -> M.Map String Var -> [Expr] -> (Int,[Expr])
 mkFreshExprs n varMap exprs =
   foldr (\x (y,exprs') ->  let (n',expr) = mkFreshExpr y varMap x
                           in (n',expr : exprs')) (n,[]) exprs
 
-mkFreshExpr :: Int -> M.Map String String -> Expr -> (Int,Expr)
+--Make quantifiers fresh, otherwise just find the Name in the emap
+mkFreshExpr :: Int -> M.Map String Var -> Expr -> (Int,Expr)
 mkFreshExpr n varMap (Lit i) = (n,Lit i)
 mkFreshExpr n varMap (Name s) = 
   case M.lookup s varMap of
     Nothing -> (n,Name s)
-    Just s' -> (n,Name s')
+    Just s' -> (n,Name $ nameOf s')
 mkFreshExpr n varMap (ForAll s expr) =
   let newVarMap = if M.member s varMap
-                    then M.adjust (\s' -> s' ++ show n) s varMap
-                    else M.insert s (s ++ show n) varMap
+                    then M.adjust (\s' -> modifyName (++ show n) s') s varMap
+                    else M.insert s (Univ $ s ++ show n) varMap
       (n1,expr1) = mkFreshExpr (n + 1) newVarMap expr
   in case M.lookup s newVarMap of
-      Just s' -> (n1, ForAll s' expr1)
+      Just s' -> (n1, ForAll (nameOf s') expr1)
       Nothing -> error "undefined"
 mkFreshExpr n varMap (Exists s expr) =
   let newVarMap = if M.member s varMap
-                    then M.adjust (\s' -> s' ++ show n) s varMap
-                    else M.insert s (s ++ show n) varMap
+                    then M.adjust (\s' -> modifyName (++ show n) s') s varMap
+                    else M.insert s (Exis $ s ++ show n) varMap
       (n1,expr1) = mkFreshExpr (n + 1) newVarMap expr
   in case M.lookup s newVarMap of
-      Just s' -> (n1, Exists s' expr1)
+      Just s' -> (n1, Exists (nameOf s') expr1)
       Nothing -> error "undefined"
 mkFreshExpr n varMap (Minus e1 e2) = 
   let (n1,expr1) = mkFreshExpr n varMap e1
@@ -179,15 +180,8 @@ name :: Expr -> String
 name (Name s) = s
 name (Repby (Name s) _) = s
 
-exprToTuple :: Expr -> (String,Maybe Expr)
-exprToTuple (Name s) = (s, Nothing)
-exprToTuple (Repby (Name s) index) = (s, Just index)
-
-toVar :: (String,Maybe Expr) -> Var
-toVar (s, Nothing) = Int s
-toVar (s, x) = Array s 
-
-modifyExpr :: Expr -> M.Map String String -> M.Map String String -> Expr
+--Replaces variables by "fresher" forms
+modifyExpr :: Expr -> M.Map String Var -> M.Map String Var -> Expr
 modifyExpr (Lit i)        old new = Lit i
 modifyExpr (Name s)       old new = Name $ newVar s old new
 modifyExpr (ForAll s e)   old new = ForAll (newVar s old new) $ modifyExpr e old new
@@ -202,19 +196,19 @@ modifyExpr (Not e1)       old new = Not    e1
 modifyExpr True_          old new = True_
 modifyExpr (Repby (Name s) index) old new = Repby (Name $ newVar s old new) (modifyExpr index old new)
 
-newVar :: String -> M.Map String String -> M.Map String String -> String
-newVar s old new | M.member s old = newVar' (fromJust $ M.lookup s old) new
+newVar :: String -> M.Map String Var -> M.Map String Var -> String
+newVar s old new | M.member s old = newVar' (nameOf $ fromJust $ M.lookup s old) new
                  | otherwise = s
-newVar' :: String -> M.Map String String -> String
-newVar' old new | M.member old new = fromJust $ M.lookup old new
+newVar' :: String -> M.Map String Var -> String
+newVar' old new | M.member old new = nameOf $ fromJust $ M.lookup old new
                 | otherwise = old
 
 --The correctNameBody is used in the body of the sim assignments.
-correctNameBody :: Expr -> M.Map String String -> Expr
-correctNameBody (Repby x (Name n)) vars | M.member n vars = Repby x (Name $ fromJust $ M.lookup n vars)
+correctNameBody :: Expr -> M.Map String Var -> Expr
+correctNameBody (Repby x (Name n)) vars | M.member n vars = Repby x (Name $ nameOf $ fromJust $ M.lookup n vars)
                                         | otherwise = Repby x $ Name n
-correctNameBody (Name s) vars | M.member s vars = Name $ (fromJust $ M.lookup s vars)
-                              | otherwise = error "Something is wrong!"
+correctNameBody (Name s) vars | M.member s vars = Name $ (nameOf $ fromJust $ M.lookup s vars)
+                              | otherwise = Name s
 correctNameBody (Lit s) _ = Lit s
 correctNameBody s _ = s
 
@@ -229,6 +223,10 @@ nameOf (Array s) = s
 nameOf (Univ s) = s
 nameOf (Exis s) = s
 
+--Convert an expression to prenex normal form
+--starting from the inside of the expression
+--We use the rules as defined in
+--https://en.wikipedia.org/wiki/Prenex_normal_form
 toPrenexNF :: Expr -> Expr
 toPrenexNF (And (ForAll s e1) e2) =
   let pnf1 = toPrenexNF e1
@@ -310,25 +308,3 @@ toPrenexNF (Not e1) =
 toPrenexNF (Exists s e) = Exists s (toPrenexNF e)
 toPrenexNF (ForAll s e) = ForAll s (toPrenexNF e)
 toPrenexNF e = e
-
-freeVars :: S.Set Var -> Expr -> [String]
-freeVars vars expr = 
-  let allRefs = S.toList $ collectRefs expr
-      quantifiers = map nameOf $ filter (\x -> case x of
-                                    Univ s -> True
-                                    Exis s -> True
-                                    _ -> False) (S.toList vars)
-  in  allRefs L.\\ quantifiers
-
-toExistential :: S.Set Var -> Expr -> Expr -> Expr
-toExistential vars e1 e2 = 
-  let fv1 = freeVars vars e1
-      fv2 = freeVars vars e2
-      uv = fv1 L.\\ fv2
-  in convertToExist uv e2
-
-convertToExist :: [String] -> Expr -> Expr
-convertToExist xs (Plus e1 e2) = undefined
-
-
-

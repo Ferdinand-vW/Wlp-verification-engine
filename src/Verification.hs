@@ -21,6 +21,8 @@ verifyProgram :: Stmt -> IO ()
 verifyProgram stmt = do
   let ((Vars xs stmts), vars) = transform stmt
       Pre pre = head stmts
+
+  putStrLn $ pp (Vars xs stmts)
   mvar <- newEmptyMVar
   writeFile "Output.txt" ""
   t <- forkIO (readInput mvar)
