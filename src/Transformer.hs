@@ -329,6 +329,3 @@ toExistential vars e1 e2 =
 
 convertToExist :: [String] -> Expr -> Expr
 convertToExist xs (Plus e1 e2) = undefined
-
-
-
