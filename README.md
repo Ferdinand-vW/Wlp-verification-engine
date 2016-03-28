@@ -1,12 +1,12 @@
 # Wlp-verification-engine
 Ferdinand van Walree 3874389 and Matthew Swart 5597250
 
-This project uses the following compiler verions:
+This project uses the following compiler versions:
 - Haskell version: 7.10.2-a
 - uuagc-0.9.52.1
 
 In order to verify an example from examples.hs you need to run "build.sh" and type: verify <function from examples.hs>.
-E.g: "verify minind"
+E.g: "verify minind'"
 
 The build.sh script builds the engine and loads the correct Haskell file.
 
@@ -17,12 +17,12 @@ Go to the "src" directory in bash and execute the following commands:
 - verify <function>
 The <function> needs to be a Haskell function which uses as syntax the functions of GCL.hs.
 All of our own examples are added in the examples.hs.
-E.g. to verify "minind" from examples.hs, you need to write: "verify minind"
+E.g. to verify "minind'" from examples.hs, you need to write: "verify minind"
 
 
 Constraint of creating your own GCL functions:
 - Use the syntactical construction of GCL.hs to write the function
-- The function that you want to verify needs to begin with var.
+- The function that you want to verify needs to begin with vars (and not program!).
 - Every program has to start with an assume.
 - We also expect every program to end with an assert, but this is not forced.
 See examples.hs to see examples.
