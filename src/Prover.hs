@@ -19,14 +19,14 @@ import Transformer(toPrenexNF, mkFreshExpr)
 --First we collect all the vaiables
 -- In proveImpl we first collect all the variables and arrays,
 -- Second we calculate Prenex normal form of the e1 e2 implication.
--- Third we calculate the Predicate from the Expr
+-- Third we calculate the Predicate form the Expr
 -- In the last step we proof the predicate
---proveImpl :: Expr -> Expr -> IO SBV.ThmResult
+proveImpl :: [Var] -> Expr -> Expr -> IO ThmResult
 proveImpl vars e1 e2 = do
   let varMap = M.fromList $ zip (map nameOf vars) vars
       e1Vars = collectRefs e1
       e2Vars = collectRefs e2
-      allVars = S.union e1Vars e2Vars
+      allVars = S.union e1Vars e2Vars --Determine which variables are integers and which are arrays
       intList = M.keys $ M.filterWithKey
         (\k a -> case a of
                 Int s -> S.member k allVars
@@ -35,7 +35,7 @@ proveImpl vars e1 e2 = do
         (\k a -> case a of
                 Array s -> S.member k allVars
                 _ -> False) varMap
-  ints <- return $ foldM (\y x -> do
+  ints <- return $ foldM (\y x -> do --Initialize the variables
     z <- sInteger x
     return $ M.insert x z y
     ) M.empty intList
