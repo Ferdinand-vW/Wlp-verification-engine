@@ -22,11 +22,11 @@ verify :: Stmt -> IO ()
 verify stmt = do
   let (Vars xs stmts, vars) = transform stmt
       Pre pre = head stmts
+
   mvar <- newEmptyMVar
-  writeFile "Output.txt" ""
   t <- forkIO (readInput mvar)
   putStrLn ""
-  putStrLn "Press space to start verification\n"
+  putStrLn "Press space to start verification step-by-step or press N to skip to result\n"
   (invs,w) <- foldWlp mvar vars True_ (tail stmts)
 
   unless (null invs) $ do
@@ -34,7 +34,7 @@ verify stmt = do
     putStrLn "Invariants are not valid:"
     mapM_ (\x -> do
         putStrLn $ pp x
-        putStrLn "-----------------------------\n\n") invs
+        putStrLn "\n\n") invs
 
   putStrLn "\n\n\n-----------------------------"
   putStrLn "RESULT: "
@@ -44,7 +44,7 @@ verify stmt = do
   putStrLn $ pp w
   putStrLn ""
   putStrLn "Now proving implication: "
-  proveImpl vars pre w >>= print
+  proveImpl vars pre w >>= putStrLn . show
   killThread t
       
 
@@ -89,28 +89,24 @@ wlp mvar vars (If g s1 s2) q = do
     stepPrint q (If g s1 s2) ((g .&& e1) .|| (neg g .&& e2))
     return (xs ++ ys, (g .&& e1) .|| (neg g .&& e2))
 -- In order to calculate the WLP of the while we first have to proof the correctness of an invariant.
--- First we calculate the WLP of s
+-- First we calculate the wlp s i
 -- Second, we proof the (i && not g) => q
--- Third, we proof (i && g) => WLP of s
--- If the invariant is not correct, we still continue calculating the WLP. However it will be reported that the while is not correct.
+-- Third, we proof (i && g) => wlp s i
+-- If the invariant is not correct, we still continue calculating the WLP. However, it will be reported that the while is not correct.
 wlp mvar vars (Inv i (While g s)) q  = do
     impl1Val <- implIsValid vars (i .&& neg g) q
-
-    implPrint "Proving invariant I AND Not G ==> Q: " (i .&& neg g) q
-
     (xs,wlpOfS) <- foldWlp mvar vars i s
-    implPrint "Proving invariant I AND G ==> I:" (i .&& g) i
     impl2Val <- implIsValid vars (i .&& g) wlpOfS
     let implInv1 = if impl1Val then [] else [i .&& neg g .==> q]
         implInv2 = if impl2Val then xs else (i .&& g .==> wlpOfS) : xs
         invs = implInv1 ++ implInv2
     if impl1Val && impl2Val
       then do
-        stepPrint q (Inv i (While g s)) i
+        stepPrint q (Inv i (While g [])) i
         return (invs,i)
       else do
-        stepPrint q (Inv i (While g s)) (neg g .&& q)
-        return (invs,neg g .&& q)
+        stepPrint q (Inv i (While g [])) (neg g .&& q)
+        return (i : xs,neg g .&& q)
 wlp mvar vars (While g s) q = do
     putStrLn "Loop reduction"
     putStrLn ("Q: " ++ show q)
@@ -171,7 +167,10 @@ assignQ (Repby (Name s) index) ref expr | isJust (snd ref) && index == fromJust 
                                         | otherwise = Repby (Name s) (assignQ index ref expr)
 assignQ expr _ _ = error $ show expr
 
---permExpr 
+
+--If we are assigning to an array that is indexed, then we will have to compare the index of that array
+--with the indexes that are used in the current wlp. We make permutations of these comparisons and for each
+--permutation we do the relevant substitution.
 permExpr :: Expr -> (String, Maybe Expr) -> Expr -> Expr
 permExpr (Lower e1 e2)  ref@(s, Nothing) args = Lower (assignQ e1 ref args) (assignQ e2 ref args)
 permExpr (LowerE e1 e2) ref@(s, Nothing) args = LowerE (assignQ e1 ref args) (assignQ e2 ref args)
@@ -180,12 +179,11 @@ permExpr expr (s, Just i) args =
   let xs = permArrays s $ findArrays expr
       perms = permutations xs
       permExprs = map (\ys -> permutation expr xs ys i .==> replaceArray ys s args expr) perms
-  in case length xs > 0 of
-        True -> case length permExprs <= 0 of
-                  False -> foldr1 (.&&) permExprs
-                  True -> error "error"
+  in case length xs > 0 of --In the case that we could not find any indexed arrays in the wlp
+        True -> foldr1 (.&&) permExprs
         False -> expr
 
+--Generates a single permutation
 permutation :: Expr -> [Expr] -> [Expr] -> Expr -> Expr
 permutation e all pExprs index = 
   let negs = all L.\\ pExprs
@@ -194,6 +192,7 @@ permutation e all pExprs index =
         False -> foldr1 (.&&) (map (.== index) pExprs ++ map (neg . (.==) index) negs)
         True -> error $ pp e
 
+--Substitution
 replaceArray :: [Expr] -> String -> Expr -> Expr -> Expr
 replaceArray xs ref expr (Lower e1 e2) = Lower (replaceArray xs ref expr e1) (replaceArray xs ref expr e2) 
 replaceArray xs ref expr (LowerE e1 e2) = LowerE (replaceArray xs ref expr e1) (replaceArray xs ref expr e2)
@@ -206,17 +205,21 @@ replaceArray xs ref expr (Repby (Name s) index)
 replaceArray _ _ expr e = e
 
 
+--Find all possible permutations
 permutations :: Eq a => [a] -> [[a]]
 permutations [] = [[]]
 permutations xs = xs : L.nub [ zs | (x,ys) <- selections xs, zs <- permutations ys ]
 
+--General selection function
 selections :: [a] -> [(a,[a])]
 selections []     = []
 selections (x:xs) = (x,xs) : [ (y,x:ys) | (y,ys) <- selections xs ]
 
+--We can only substitute arrays that have the correct name
 permArrays :: String -> [Expr] -> [Expr]
 permArrays s xs = map (\(Repby _ i) -> i) $ filter (\(Repby (Name s1) index) -> s1 == s) xs
 
+--Find all indexed arrays
 findArrays :: Expr -> [Expr]
 findArrays (Lower e1 e2)  = findArrays e1 ++ findArrays e2
 findArrays (LowerE e1 e2)  = findArrays e1 ++ findArrays e2
@@ -227,12 +230,13 @@ findArrays (Repby s i) = [Repby s i]
 findArrays (Name s) = []
 findArrays (Lit i) = []
 
+--Connects to the prover to determine whether the implication is valid
 implIsValid :: [Var] -> Expr -> Expr -> IO Bool
 implIsValid vars e1 e2 = do
   validity <- proveImpl vars e1 e2
-  appendFile "Output.txt" (show validity)
   return $ not $ modelExists validity
 
+--Some interactivity functions
 readInput :: MVar Char -> IO ()
 readInput mvar = do
   c <- getChar
