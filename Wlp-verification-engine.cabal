@@ -12,11 +12,11 @@ maintainer:          m.a.swart@students.uu.nl
 -- copyright:           
 category:            Education
 build-type:          Simple
-extra-source-files:  README.md, src/Grammar.ag, src/Collect.ag
+extra-source-files:  README.md, src/Grammar.ag, src/Collect.ag, "Documents/WLP-based verification engine.pdf", src/Grammar.ag,src/Grammar.hs
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Examples, Transformer, Grammar, Prover, Collect, GCL, PrettyPrint, Verification
+  exposed-modules:     Examples, Transformer, Prover, Collect, GCL, PrettyPrint, Verification
   -- other-modules:       
   other-extensions:    ScopedTypeVariables
   build-depends:       base >=4.8 && <4.9, containers >=0.5 && <0.6, sbv >=5.11 && <5.12

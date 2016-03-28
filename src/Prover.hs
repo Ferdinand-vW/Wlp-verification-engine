@@ -13,6 +13,10 @@ import Control.Monad
 import PrettyPrint
 import Collect
 import Transformer(toPrenexNF, mkFreshExpr)
+
+
+--In the proveImpl we prove the implication.
+--First we collect all the vaiables
 --proveImpl :: Expr -> Expr -> IO SBV.ThmResult
 proveImpl vars e1 e2 = do
   let varMap = M.fromList $ zip (map nameOf vars) vars
@@ -21,107 +25,26 @@ proveImpl vars e1 e2 = do
       allVars = S.union e1Vars e2Vars
       intList = M.keys $ M.filterWithKey
         (\k a -> case a of
-                Int s -> True && S.member k allVars
+                Int s -> S.member k allVars
                 _ -> False) varMap
-      {-forallList = M.keys $ M.filterWithKey
-        (\k a -> case a of
-                Univ s -> True && S.member k allVars
-                _ -> False) varMap-}
       arrList = M.keys $ M.filterWithKey 
         (\k a -> case a of
-                Array s -> True && S.member k allVars
+                Array s -> S.member k allVars
                 _ -> False) varMap
   ints <- return $ foldM (\y x -> do
     z <- sInteger x
-    --z <- forall x :: Symbolic SInteger
     return $ M.insert x z y
     ) M.empty intList
   arrays <- return $ foldM (\y x -> do
     z <- newArray x Nothing :: Symbolic (SArray Integer Integer)
     return $ M.insert x z y
     ) M.empty arrList
-  {-univs <- return $ foldM (\y x -> do
-  z <- forall x :: Symbolic SInteger
-  return $ M.insert x z y
-  ) M.empty forallList-}
   let expr = toPrenexNF $ snd $ mkFreshExpr 0 M.empty (e1 `Impl` e2)
-  print "--------------------------------"
-  print $ pp expr
-  print "--------------------------------"
-  let str = "\n------------------------------\n" ++
-            pp expr ++ "\n" ++
-            "\n--------------------------------\n"
-  appendFile "Output.txt" str
   prove $ do
     ints' <- ints
     arrays' <- arrays
-    --univs' <- univs
-    pred <- mkPred ints' arrays' expr
-    --pred2 <- mkPred ints' arrays' e2
-    return $ pred
+    mkPred ints' arrays' expr
 
-
-----provePred :: Expr -> IO SBV.ThmResult
-{-provePred e = do
-  let eVars = S.filter (\(a,t) -> t==T_Integer) $ collectVars e
-      arrSet = S.filter (\(a,t) -> t==T_Array) $ collectVars e
-  vars <- return $ foldM (\y x -> do
-    z <- sInteger x
-    return $ M.insert x z y
-    ) M.empty (fst $ unzip $ S.toList eVars)
-  arr <- return $ foldM (\y x -> do
-    z <- newArray x Nothing :: Symbolic (SArray Integer Integer)
-    return $ M.insert x z y
-    ) M.empty (fst $ unzip $ S.toList arrSet)
-
-  prove $ do
-    vars' <- vars
-    arr' <- arr
-    p <- mkPred vars' arr' e
-    error $ show p
-    return p-}
-
-test :: IO ()
-test = do
-  p <- prove $ do
-    a <- newArray "a" Nothing :: Symbolic (SArray Integer Integer)
-    j <- sInteger "j"
-    i <- sInteger "i"
-    n <- sInteger "n"
-    r <- sInteger "r"
-    c <- sInteger "c"
-    d <- sInteger "d"
-    min <- sInteger "min"
-    x <- forall "x" :: Symbolic SInteger
-    return $ 
-        ((j .< n &&& j .<= i &&& j .< r &&&
-          (j .== i ==> r .== i) &&&
-          (j .<= i ==> r .< i) &&&
-          min .== readArray a r &&&
-          (j .<= x &&& x .< i 
-            ==>
-          readArray a r .<= readArray a x))) &&& (i .>= n)
-        ==> 
-        (j .<= x &&& x .< n ==>
-          readArray a r .<= readArray a x)
-  print p
-
-test2 :: IO ()
-test2 = do
-  p <- prove $ do
-    f1 <- forAll ["x"] (\(x :: SInteger) -> x .> 0 ==> 5 .< x)
-    f2 <- forAll ["y"] (\(y :: SInteger) -> y .> 0 ==> 5 .< y)
-    return $ f1 ==> f2
-  print p
-
-test3 :: IO ()
-test3 = do
-  p <- prove $ do
-    a <- newArray "a" Nothing :: Symbolic (SArray Integer Integer)
-    x <- forall "x" :: Symbolic SInteger
-    y <- forall "y" :: Symbolic SInteger
-    return $ (x .> 0 ==> readArray a 0 .< x) ==> (y .> 0 ==> readArray a 0 .< y)
-  print p
 
 mkPred :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Predicate
 mkPred vars arr (Equal e1 e2)  = do
@@ -165,6 +88,8 @@ mkPred vars arr (Exists s e)   = do
 mkPred vars arr True_ = return true
 mkPred vars arr _ = error "Should not occur"
 
+--This function will either return an SInteger or Array.
+--We have to distinguish between them, because we want to able to return both elements.
 mkSymEq :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic (Either SInteger (SArray Integer Integer))
 mkSymEq vars arr (Name s) = 
   case M.lookup s arr of
