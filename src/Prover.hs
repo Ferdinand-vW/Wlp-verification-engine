@@ -17,6 +17,10 @@ import Transformer(toPrenexNF, mkFreshExpr)
 
 --In the proveImpl we prove the implication.
 --First we collect all the vaiables
+-- In proveImpl we first collect all the variables and arrays,
+-- Second we calculate Prenex normal form of the e1 e2 implication.
+-- Third we calculate the Predicate from the Expr
+-- In the last step we proof the predicate
 --proveImpl :: Expr -> Expr -> IO SBV.ThmResult
 proveImpl vars e1 e2 = do
   let varMap = M.fromList $ zip (map nameOf vars) vars
@@ -45,7 +49,7 @@ proveImpl vars e1 e2 = do
     arrays' <- arrays
     mkPred ints' arrays' expr
 
-
+--mkPred converts an Expr to the Predicate of the Data.SBV package.
 mkPred :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Predicate
 mkPred vars arr (Equal e1 e2)  = do
   p1 <- mkSymEq vars arr e1
@@ -88,8 +92,9 @@ mkPred vars arr (Exists s e)   = do
 mkPred vars arr True_ = return true
 mkPred vars arr _ = error "Should not occur"
 
---This function will either return an SInteger or Array.
---We have to distinguish between them, because we want to able to return both elements.
+--mkSymEq will either return an SInteger or an Array.
+-- Left is sInteger
+-- Right is an Array
 mkSymEq :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic (Either SInteger (SArray Integer Integer))
 mkSymEq vars arr (Name s) = 
   case M.lookup s arr of
@@ -101,7 +106,7 @@ mkSymEq vars arr expr = do
   sInt <- mkSymInt vars arr expr
   return $ Left sInt
 
-
+--mkSymInt calculates the symbolic integer of an Expression
 mkSymInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> Expr -> Symbolic SInteger
 mkSymInt vars arr (Minus e1 e2) = mkInt vars arr (-) e1 e2
 mkSymInt vars arr (Plus e1 e2) = mkInt vars arr (+) e1 e2
@@ -114,6 +119,7 @@ mkSymInt vars arr (Repby (Name s) index) = do
                   return $ readArray (fromJust $ M.lookup s arr) index'
 mkSymInt vars arr expr = error $ show expr
 
+--mkInt is used to perform some basic math operations on two Expressions. 
 mkInt :: M.Map String SInteger -> M.Map String (SArray Integer Integer) -> (SInteger -> SInteger -> SInteger) -> Expr -> Expr -> Symbolic SInteger
 mkInt _ _ op (Lit i) (Lit j) = return $ i `op` j
 mkInt vars arr op e1 (Lit j) = do
